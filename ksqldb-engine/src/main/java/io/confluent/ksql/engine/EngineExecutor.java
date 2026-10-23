@@ -108,6 +108,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
@@ -117,7 +118,6 @@ import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
@@ -126,8 +126,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Executor of {@code PreparedStatement} within a specific {@code EngineContext} and using a
@@ -143,7 +143,7 @@ import org.slf4j.LoggerFactory;
 final class EngineExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger LOG = LoggerFactory.getLogger(EngineExecutor.class);
+  private static final Logger LOG = LogManager.getLogger(EngineExecutor.class);
   private static final String NO_OUTPUT_TOPIC_PREFIX = "";
 
   private final EngineContext engineContext;
@@ -324,7 +324,9 @@ final class EngineExecutor {
           statement.getMaskedStatementText(),
           e
       );
-      if (e instanceof KsqlStatementException) {
+      if (e instanceof KsqlServerException) {
+        throw e;
+      } else if (e instanceof KsqlStatementException) {
         throw new KsqlStatementException(
             e.getMessage() == null ? "Server Error" : e.getMessage(),
             ((KsqlStatementException) e).getUnloggedMessage(),
@@ -590,8 +592,7 @@ final class EngineExecutor {
         Optional.empty(),
         plans.executionPlan.getPhysicalPlan(),
         plans.executionPlan.getQueryId(),
-        getApplicationId(plans.executionPlan.getQueryId(),
-            getSourceTopicNames(outputNode))
+        Optional.empty()
     );
 
     engineContext.createQueryValidator().validateQuery(
@@ -667,8 +668,7 @@ final class EngineExecutor {
           outputNode.getSinkName(),
           plans.executionPlan.getPhysicalPlan(),
           plans.executionPlan.getQueryId(),
-          getApplicationId(plans.executionPlan.getQueryId(),
-              getSourceTopicNames(outputNode))
+          Optional.empty()
       );
 
       engineContext.createQueryValidator().validateQuery(
@@ -687,15 +687,6 @@ final class EngineExecutor {
     } catch (final Exception e) {
       throw new KsqlStatementException(e.getMessage(), statement.getMaskedStatementText(), e);
     }
-  }
-
-  private Optional<String> getApplicationId(final QueryId queryId,
-                                            final Collection<String> sources) {
-    return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-        ? Optional.of(
-        engineContext.getRuntimeAssignor()
-            .getRuntimeAndMaybeAddRuntime(queryId, sources, config.getConfig(true))) :
-        Optional.empty();
   }
 
   @SuppressWarnings({"NPathComplexity", "CyclomaticComplexity"})
@@ -1087,14 +1078,6 @@ final class EngineExecutor {
         .collect(Collectors.toSet());
   }
 
-  private static Set<String> getSourceTopicNames(final PlanNode outputNode) {
-    return outputNode.getSourceNodes()
-        .map(DataSourceNode::getDataSource)
-        .map(DataSource::getKsqlTopic)
-        .map(KsqlTopic::getKafkaTopicName)
-        .collect(Collectors.toSet());
-  }
-
   private String executeDdl(
       final DdlCommand ddlCommand,
       final String statementText,
@@ -1143,8 +1126,7 @@ final class EngineExecutor {
         getSources(queryPlan),
         queryPlan.getPhysicalPlan(),
         buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan()),
-        persistentQueryType,
-        queryPlan.getRuntimeId()
+        persistentQueryType
     );
   }
 

@@ -22,7 +22,6 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udtf.UdtfDescription;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
-import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
@@ -35,8 +34,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import org.apache.kafka.common.metrics.Metrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Coordinates the loading of UDFs, UDAFs and UDTFs. The actual loading of the functions is done in
@@ -44,7 +43,7 @@ import org.slf4j.LoggerFactory;
  */
 public class UserFunctionLoader {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(UserFunctionLoader.class);
+  private static final Logger LOGGER = LogManager.getLogger(UserFunctionLoader.class);
 
   private final File pluginDir;
   private final ClassLoader parentClassLoader;
@@ -81,6 +80,13 @@ public class UserFunctionLoader {
     // load functions packaged as part of ksql first
     loadFunctions(parentClassLoader, empty());
     if (loadCustomerUdfs) {
+      LOGGER.warn(
+          "Custom UDFs/UDAFs/UDTFs are enabled ({}=true). Extension code runs in-process with "
+              + "no sandbox: a malicious or buggy UDF can call System.exit(), execute arbitrary "
+              + "processes, or access any data visible to the ksqlDB JVM. "
+              + "Only load extension JARs from trusted sources.",
+          KsqlConfig.KSQL_ENABLE_UDFS
+      );
       try {
         if (!pluginDir.exists() && !pluginDir.isDirectory()) {
           LOGGER.info(
@@ -154,9 +160,6 @@ public class UserFunctionLoader {
         ? Optional.of(metricsRegistry)
         : empty();
 
-    if (config.getBoolean(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED)) {
-      System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-    }
     return new UserFunctionLoader(
         metaStore,
         pluginDir,

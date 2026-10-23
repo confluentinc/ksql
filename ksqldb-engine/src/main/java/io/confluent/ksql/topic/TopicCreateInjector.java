@@ -154,12 +154,15 @@ public class TopicCreateInjector implements InjectorWithSideEffects {
         ? TopicConfig.CLEANUP_POLICY_COMPACT : TopicConfig.CLEANUP_POLICY_DELETE;
 
     final String topicName = properties.getKafkaTopic();
+    final boolean inheritSourceReplicas = statement.getSessionConfig().getConfig(true)
+        .getBoolean(KsqlConfig.KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_CONFIG);
 
     if (topicClient.isTopicExists(topicName)) {
       topicPropertiesBuilder
           .withSource(
               () -> topicClient.describeTopic(topicName),
-              () -> topicClient.getTopicConfig(topicName));
+              () -> topicClient.getTopicConfig(topicName),
+              inheritSourceReplicas);
     } else if (!properties.getPartitions().isPresent()) {
       final CreateSource example = createSource.copyWith(
           createSource.getElements(),
@@ -197,6 +200,8 @@ public class TopicCreateInjector implements InjectorWithSideEffects {
   ) {
     final String prefix = statement.getSessionConfig().getConfig(true)
         .getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
+    final boolean inheritSourceReplicas = statement.getSessionConfig().getConfig(true)
+        .getBoolean(KsqlConfig.KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_CONFIG);
 
     final T createAsSelect = statement.getStatement();
     final CreateSourceAsProperties properties = createAsSelect.getProperties();
@@ -213,7 +218,8 @@ public class TopicCreateInjector implements InjectorWithSideEffects {
         .withName(prefix + createAsSelect.getName().text())
         .withSource(
             () -> topicClient.describeTopic(sourceTopicName),
-            () -> topicClient.getTopicConfig(sourceTopicName))
+            () -> topicClient.getTopicConfig(sourceTopicName),
+            inheritSourceReplicas)
         .withWithClause(
             properties.getKafkaTopic(),
             properties.getPartitions(),

@@ -44,7 +44,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
@@ -68,8 +68,10 @@ public class WindowingIntTest {
 
   private static final StringDeserializer STRING_DESERIALIZER = new StringDeserializer();
 
+  private static final long TEN_SECONDS_WINDOW = Duration.ofSeconds(10).toMillis();
+
   private static final TimeWindowedDeserializer<String> TIME_WINDOWED_DESERIALIZER =
-      new TimeWindowedDeserializer<>(STRING_DESERIALIZER);
+      new TimeWindowedDeserializer<>(STRING_DESERIALIZER, TEN_SECONDS_WINDOW);
 
   private static final SessionWindowedDeserializer<String> SESSION_WINDOWED_DESERIALIZER =
       new SessionWindowedDeserializer<>(STRING_DESERIALIZER);
@@ -84,7 +86,7 @@ public class WindowingIntTest {
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS);
 
   @Rule
@@ -151,7 +153,7 @@ public class WindowingIntTest {
         + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
-        new Windowed<>("ITEM_1", new TimeWindow(tenSecWindowStartMs, Long.MAX_VALUE)),
+        new Windowed<>("ITEM_1", new TimeWindow(tenSecWindowStartMs, tenSecWindowStartMs + TEN_SECONDS_WINDOW)),
         genericRow(2L, 20.0, 100.0)
     );
 
@@ -172,9 +174,9 @@ public class WindowingIntTest {
     final long secondWindowStart = firstWindowStart + TimeUnit.SECONDS.toMillis(5);
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
-        new Windowed<>("ITEM_1", new TimeWindow(firstWindowStart, Long.MAX_VALUE)),
+        new Windowed<>("ITEM_1", new TimeWindow(firstWindowStart, firstWindowStart + TEN_SECONDS_WINDOW)),
         genericRow(2L, 20.0, 200.0),
-        new Windowed<>("ITEM_1", new TimeWindow(secondWindowStart, Long.MAX_VALUE)),
+        new Windowed<>("ITEM_1", new TimeWindow(secondWindowStart, secondWindowStart + TEN_SECONDS_WINDOW)),
         genericRow(2L, 20.0, 200.0)
     );
 

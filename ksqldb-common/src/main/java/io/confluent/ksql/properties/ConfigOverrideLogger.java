@@ -26,10 +26,9 @@ import java.util.function.Function;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-import org.apache.log4j.MDC;
-
+import org.apache.logging.log4j.CloseableThreadContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Logs each property override at a REST endpoint. Gated on
@@ -37,8 +36,9 @@ import org.apache.log4j.MDC;
  *
  * <p>The message ({@code "Config overrides found"} / {@code "No Config overrides"}) identifies
  * the event; variable fields ({@code endpoint}, {@code property}, {@code inAllowlist}) attach
- * via log4j {@link MDC}, so JSON layouts surface them as discrete indexable fields. The keys
- * are removed after each call so they don't leak across requests on shared worker threads.
+ * via log4j2 ThreadContext, so JSON layouts surface them as discrete indexable fields.
+ * {@link CloseableThreadContext} clears the keys after each call so they don't leak across
+ * requests on shared worker threads.
  *
  * <p>Property values are never logged — some keys (e.g. {@code sasl.jaas.config}) carry
  * credentials.
@@ -160,31 +160,21 @@ public final class ConfigOverrideLogger {
       return;
     }
     if (properties == null || properties.isEmpty()) {
-      MDC.put(ENDPOINT, endpoint);
-      try {
+      try (CloseableThreadContext.Instance ignored = CloseableThreadContext
+          .put(ENDPOINT, endpoint)) {
         LOG.debug("No Config overrides");
-      } finally {
-        MDC.remove(ENDPOINT);
       }
       return;
     }
     for (final String key : properties.keySet()) {
-      MDC.put(ENDPOINT, endpoint);
-      MDC.put(PROPERTY, key);
-      MDC.put(IN_ALLOWLIST, String.valueOf(allowlist.contains(key)));
-      if (query.isPresent()) {
-        MDC.put(QUERY, query.get());
-      }
+      final CloseableThreadContext.Instance context = CloseableThreadContext
+          .put(ENDPOINT, endpoint)
+          .put(PROPERTY, key)
+          .put(IN_ALLOWLIST, String.valueOf(allowlist.contains(key)));
+      query.ifPresent(id -> context.put(QUERY, id));
 
-      try {
+      try (CloseableThreadContext.Instance ignored = context) {
         LOG.info("Config overrides found");
-      } finally {
-        MDC.remove(ENDPOINT);
-        MDC.remove(PROPERTY);
-        MDC.remove(IN_ALLOWLIST);
-        if (query.isPresent()) {
-          MDC.remove(QUERY);
-        }
       }
     }
   }
@@ -225,22 +215,14 @@ public final class ConfigOverrideLogger {
         continue;
       }
 
-      MDC.put(ENDPOINT, endpoint);
-      MDC.put(PROPERTY, entry.getKey());
-      MDC.put(VALUE, String.valueOf(entry.getValue()));
-      if (query.isPresent()) {
-        MDC.put(QUERY, query.get());
-      }
+      final CloseableThreadContext.Instance context = CloseableThreadContext
+          .put(ENDPOINT, endpoint)
+          .put(PROPERTY, entry.getKey())
+          .put(VALUE, String.valueOf(entry.getValue()));
+      query.ifPresent(id -> context.put(QUERY, id));
 
-      try {
-        LOG.warn("Config override outside intended range: " + violation.get());
-      } finally {
-        MDC.remove(ENDPOINT);
-        MDC.remove(PROPERTY);
-        MDC.remove(VALUE);
-        if (query.isPresent()) {
-          MDC.remove(QUERY);
-        }
+      try (CloseableThreadContext.Instance ignored = context) {
+        LOG.warn("Config override outside intended range: {}", violation.get());
       }
     }
   }

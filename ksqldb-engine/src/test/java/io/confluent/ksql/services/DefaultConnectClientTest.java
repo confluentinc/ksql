@@ -46,7 +46,6 @@ import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo.PluginType;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.test.util.OptionalMatchers;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;

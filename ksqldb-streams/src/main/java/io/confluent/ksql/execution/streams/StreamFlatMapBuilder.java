@@ -29,7 +29,7 @@ import io.confluent.ksql.execution.function.udtf.TableFunctionApplier;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
+import io.confluent.ksql.execution.streams.process.KsFlatTransformedValueProcessor;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlTableFunction;
@@ -85,8 +85,8 @@ public final class StreamFlatMapBuilder {
     final ImmutableList<TableFunctionApplier> tableFunctionAppliers = tableFunctionAppliersBuilder
         .build();
 
-    final KStream<K, GenericRow> mapped = stream.getStream().flatTransformValues(
-        () -> new KsValueTransformer<>(
+    final KStream<K, GenericRow> mapped = stream.getStream().processValues(
+        () -> new KsFlatTransformedValueProcessor<>(
             new KudtfFlatMapper<>(tableFunctionAppliers, processingLogger)
         ),
         Named.as(StreamsUtil.buildOpName(queryContext))

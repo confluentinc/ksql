@@ -95,7 +95,6 @@ public final class KsMaterializationFactory {
         topology,
         keySerializer,
         localHost,
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED),
         queryId
     );
 
@@ -103,8 +102,7 @@ public final class KsMaterializationFactory {
         stateStoreName,
         kafkaStreams,
         schema,
-        ksqlConfig,
-        queryId
+        ksqlConfig
     );
 
     final KsMaterialization materialization = materializationFactory.create(
@@ -137,7 +135,6 @@ public final class KsMaterializationFactory {
         Topology topology,
         Serializer<GenericKey> keySerializer,
         URL localHost,
-        boolean sharedRuntimesEnabled,
         String queryId
     );
   }
@@ -148,8 +145,7 @@ public final class KsMaterializationFactory {
         String stateStoreName,
         KafkaStreams kafkaStreams,
         LogicalSchema schema,
-        KsqlConfig ksqlConfig,
-        String queryId
+        KsqlConfig ksqlConfig
     );
   }
 

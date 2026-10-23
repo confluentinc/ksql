@@ -17,30 +17,60 @@ package io.confluent.ksql.test.util;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.spi.LoggingEvent;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.plugins.Plugin;
+import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
+import org.apache.logging.log4j.core.config.plugins.PluginElement;
+import org.apache.logging.log4j.core.config.plugins.PluginFactory;
 
-public class TestAppender extends AppenderSkeleton {
-  private final List<LoggingEvent> log = new ArrayList<>();
+@Plugin(name = "TestAppender", category = "Core",
+    elementType = Appender.ELEMENT_TYPE, printObject = true)
+public class TestAppender extends AbstractAppender {
+  private final List<LogEvent> log = new ArrayList<>();
 
-  @Override
-  public boolean requiresLayout() {
-    return false;
+  public TestAppender(final String name, final Layout<?> layout) {
+    super(name, null, layout, false);
+  }
+
+  @PluginFactory
+  public static TestAppender createAppender(
+      @PluginAttribute("name") final String name,
+      @PluginElement("Layout") final Layout<?> layout) {
+    return new TestAppender(name, layout);
   }
 
   @Override
-  public void append(final LoggingEvent loggingEvent) {
-    // Force the MDC snapshot now, while still on the logging thread with the
-    // context still populated.
-    loggingEvent.getMDCCopy();
-    log.add(loggingEvent);
+  public void append(final LogEvent event) {
+    log.add(event);
   }
 
-  @Override
-  public void close() {
-  }
-
-  public List<LoggingEvent> getLog() {
+  public List<LogEvent> getLog() {
     return new ArrayList<>(log);
+  }
+
+  public static Builder newBuilder() {
+    return new Builder();
+  }
+
+  public static class Builder {
+    private String name;
+    private Layout<?> layout;
+
+    public Builder setName(final String name) {
+      this.name = name;
+      return this;
+    }
+
+    public Builder setLayout(final Layout<?> layout) {
+      this.layout = layout;
+      return this;
+    }
+
+    public TestAppender build() {
+      return new TestAppender(name, layout);
+    }
   }
 }

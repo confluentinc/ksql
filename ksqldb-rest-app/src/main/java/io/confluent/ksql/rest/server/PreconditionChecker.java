@@ -49,14 +49,14 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class PreconditionChecker implements Executable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger LOG = LoggerFactory.getLogger(PreconditionChecker.class);
+  private static final Logger LOG = LogManager.getLogger(PreconditionChecker.class);
 
   final KsqlRestConfig restConfig;
   final Supplier<Map<String, String>> propertiesLoader;

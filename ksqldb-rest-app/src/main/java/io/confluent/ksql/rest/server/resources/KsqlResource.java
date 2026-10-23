@@ -20,7 +20,6 @@ import static java.util.regex.Pattern.compile;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.api.util.ApiServerUtils;
-import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.logging.query.QueryLogger;
@@ -44,7 +43,6 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.KsqlWarning;
-import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
@@ -83,14 +81,14 @@ import java.util.function.Supplier;
 import java.util.regex.PatternSyntaxException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.HostInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlResource implements KsqlConfigurable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger LOG = LoggerFactory.getLogger(KsqlResource.class);
+  private static final Logger LOG = LogManager.getLogger(KsqlResource.class);
 
   private static final List<ParsedStatement> TERMINATE_CLUSTER =
       new DefaultKsqlParser().parse(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
@@ -251,19 +249,10 @@ public class KsqlResource implements KsqlConfigurable {
       // Reject unknown property names up front with the same PropertyNotFoundException that the
       // /ksql, /query and /ws/query paths throw as an "unrecognized property" error
       // rather than a misleading allow/deny-list rejection.
-      final ConfigItem resolvedItem = resolver.resolve(property, true)
+      resolver.resolve(property, true)
           .orElseThrow(() -> new PropertyNotFoundException(property));
       ConfigOverrideLogger.logOverrides("SET", properties);
       configOverrideValidator.validateAll(properties);
-      if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-        if (!PropertiesList.QueryLevelProperties.contains(resolvedItem.getPropertyName())) {
-          throw new KsqlException(String.format("When shared runtimes are enabled, the"
-              + " config %s can only be set for the entire cluster and all queries currently"
-              + " running in it, and not configurable for individual queries."
-              + " Please use ALTER SYSTEM to change this config for all queries.",
-              properties));
-        }
-      }
       return EndpointResponse.ok(true);
     } catch (final PropertyNotFoundException | KsqlException e) {
       // Unknown property name (PropertyNotFoundException) and denylist/allowlist rejections

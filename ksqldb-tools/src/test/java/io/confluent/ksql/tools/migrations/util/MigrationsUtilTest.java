@@ -18,11 +18,19 @@ package io.confluent.ksql.tools.migrations.util;
 import static io.confluent.ksql.tools.migrations.util.MigrationsUtil.createClientOptions;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.ClientOptions;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+
+import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.security.oauth.ClientSecretIdpConfig;
+import io.confluent.ksql.security.oauth.IdpConfig;
+import io.confluent.ksql.security.oauth.IdpConfigFactory;
+import io.confluent.ksql.tools.migrations.MigrationConfig;
 import org.junit.Test;
 
 public class MigrationsUtilTest {
@@ -33,14 +41,18 @@ public class MigrationsUtilTest {
   @Test
   public void shouldCreateNonTlsClientOptions() {
     // Given:
+    IdpConfig idpConfig = IdpConfigFactory.getIdpConfig(new HashMap<>());
     final ClientOptions clientOptions = createClientOptions(NON_TLS_URL, "user",
-        "pass", null, "", null,
+        "pass", idpConfig,
+        null, "", null,
         null, "", "foo", false, true, null);
 
     // Then:
     assertThat(clientOptions.isUseTls(), is(false));
     assertThat(clientOptions.getBasicAuthUsername(), is("user"));
     assertThat(clientOptions.getBasicAuthPassword(), is("pass"));
+    assertThrows(NullPointerException.class,
+        () -> clientOptions.getIdpConfig().toIdpCredentialsConfig());
     assertThat(clientOptions.getTrustStore(), is(""));
     assertThat(clientOptions.getTrustStorePassword(), is(""));
     assertThat(clientOptions.getKeyStore(), is(""));
@@ -56,14 +68,18 @@ public class MigrationsUtilTest {
   public void shouldCreateTlsClientOptions() {
     // Given:
     final Map<String, String> requestHeaders = ImmutableMap.of("h1", "v1", "h2", "v2");
+    IdpConfig idpConfig = IdpConfigFactory.getIdpConfig(new HashMap<>());
     final ClientOptions clientOptions = createClientOptions(TLS_URL, "user",
-        "pass", "abc", null, null,
+        "pass", idpConfig,
+        "abc", null, null,
         null, null, null, true, true, requestHeaders);
 
     // Then:
     assertThat(clientOptions.isUseTls(), is(true));
     assertThat(clientOptions.getBasicAuthUsername(), is("user"));
     assertThat(clientOptions.getBasicAuthPassword(), is("pass"));
+    assertThrows(NullPointerException.class,
+        () -> clientOptions.getIdpConfig().toIdpCredentialsConfig());
     assertThat(clientOptions.getTrustStore(), is("abc"));
     assertThat(clientOptions.getTrustStorePassword(), is(""));
     assertThat(clientOptions.getKeyStore(), is(""));
@@ -74,4 +90,62 @@ public class MigrationsUtilTest {
     assertThat(clientOptions.isVerifyHost(), is(true));
     assertThat(clientOptions.getRequestHeaders(), is(requestHeaders));
   }
+
+  @Test
+  public void shouldCreateClientOptionsWithOAuthAndTlsEnabled() {
+    // Given:
+    Map<String, Object> configs = new HashMap<>();
+    configs.put(MigrationConfig.BEARER_AUTH_ISSUER_ENDPOINT_URL, "http://localhost:8080");
+    configs.put(MigrationConfig.BEARER_AUTH_CLIENT_ID, "user");
+    configs.put(MigrationConfig.BEARER_AUTH_CLIENT_SECRET, "pass");
+    configs.put(MigrationConfig.BEARER_AUTH_SCOPE, "all");
+    configs.put(MigrationConfig.BEARER_AUTH_SCOPE_CLAIM_NAME, "newScope");
+    configs.put(MigrationConfig.BEARER_AUTH_SUB_CLAIM_NAME, "newSub");
+    configs.put(MigrationConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS, (short) 600);
+    IdpConfig idpConfig = IdpConfigFactory.getIdpConfig(configs);
+    final ClientOptions clientOptions = createClientOptions(TLS_URL, "",
+        "", idpConfig,
+        "abc", null, null,
+        null, null, null, true, true, null);
+
+    ClientSecretIdpConfig clientSecretIdpConfig = (ClientSecretIdpConfig) clientOptions.getIdpConfig();
+    // Then:
+    assertThat(clientOptions.isUseTls(), is(true));
+    assertThat(clientOptions.getBasicAuthUsername(), is(""));
+    assertThat(clientOptions.getBasicAuthPassword(), is(""));
+    assertThat(clientSecretIdpConfig.getIdpTokenEndpointUrl(), is("http://localhost:8080"));
+    assertThat(clientSecretIdpConfig.getIdpClientId(), is("user"));
+    assertThat(clientSecretIdpConfig.getIdpClientSecret(), is("pass"));
+    assertThat(clientSecretIdpConfig.getIdpScope(), is("all"));
+    assertThat(clientSecretIdpConfig.getIdpScopeClaimName(), is("newScope"));
+    assertThat(clientSecretIdpConfig.getIdpSubClaimName(), is("newSub"));
+    assertThat(clientSecretIdpConfig.getIdpCacheExpiryBufferSeconds(), is((short) 600));
+    assertThat(clientOptions.getTrustStore(), is("abc"));
+    assertThat(clientOptions.getTrustStorePassword(), is(""));
+    assertThat(clientOptions.getKeyStore(), is(""));
+    assertThat(clientOptions.getKeyStorePassword(), is(""));
+    assertThat(clientOptions.getKeyPassword(), is(""));
+    assertThat(clientOptions.getKeyAlias(), is(""));
+    assertThat(clientOptions.isUseAlpn(), is(true));
+    assertThat(clientOptions.isVerifyHost(), is(true));
+    assertThat(clientOptions.getRequestHeaders(), is(Collections.emptyMap()));
+  }
+
+  @Test
+  public void testCannotConfigureBothBasicAndBearerAuth() {
+    Map<String, Object> configs = new HashMap<>();
+    configs.put(MigrationConfig.BEARER_AUTH_ISSUER_ENDPOINT_URL, "http://localhost:8080");
+    configs.put(MigrationConfig.BEARER_AUTH_CLIENT_ID, "user");
+    configs.put(MigrationConfig.BEARER_AUTH_CLIENT_SECRET, "pass");
+    configs.put(MigrationConfig.BEARER_AUTH_SCOPE, "all");
+    configs.put(MigrationConfig.BEARER_AUTH_SCOPE_CLAIM_NAME, "newScope");
+    configs.put(MigrationConfig.BEARER_AUTH_SUB_CLAIM_NAME, "newSub");
+    configs.put(MigrationConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS, (short) 600);
+    IdpConfig idpConfig = IdpConfigFactory.getIdpConfig(configs);
+    assertThrows(KsqlClientException.class, () -> createClientOptions(TLS_URL, "user",
+        "pass", idpConfig,
+        "abc", null, null,
+        null, null, null, true, true, null));
+  }
+
 }

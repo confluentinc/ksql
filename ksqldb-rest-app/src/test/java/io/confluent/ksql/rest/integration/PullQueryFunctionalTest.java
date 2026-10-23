@@ -31,7 +31,8 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.security.BasicCredentials;
+import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -56,7 +57,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -67,8 +68,8 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Test to ensure pull queries route across multiple KSQL nodes correctly.
@@ -80,7 +81,7 @@ import org.slf4j.LoggerFactory;
 @Category({IntegrationTest.class})
 public class PullQueryFunctionalTest {
 
-  private static final Logger LOG = LoggerFactory.getLogger(PullQueryFunctionalTest.class);
+  private static final Logger LOG = LogManager.getLogger(PullQueryFunctionalTest.class);
   private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   static {
@@ -154,7 +155,7 @@ public class PullQueryFunctionalTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(JAAS_CONFIG)
       .around(REST_APP_0)
@@ -297,6 +298,36 @@ public class PullQueryFunctionalTest {
         .collect(Collectors.toList());
     assertThat(rows, containsInAnyOrder(ImmutableList.of(key0, 1), ImmutableList.of(key1, 1),
         ImmutableList.of(key2, 1)));
+  }
+
+  @Test
+  public void shouldIgnoreDebugRequestOnPublicListener() {
+    // Given:
+    final String key0 = USER_PROVIDER.getStringKey(0);
+    final String key1 = USER_PROVIDER.getStringKey(1);
+    final String key2 = USER_PROVIDER.getStringKey(2);
+
+    makeAdminRequest(
+        "CREATE TABLE " + output + " AS"
+            + " SELECT " + USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " GROUP BY " + USER_PROVIDER.key() + ";"
+    );
+
+    waitForTableRows();
+
+    // Rows for these keys live on both nodes, so this covers local and forwarded reads.
+    final String sql = "SELECT * FROM " + output + " WHERE USERID IN ('"
+        + key0 + "'," + "'" + key1 + "'," + "'" + key2 + "');";
+
+    // When:
+    final List<StreamedRow> rows = RestIntegrationTestUtil.makeDebugQueryRequest(
+        REST_APP_0.buildKsqlClient(validCreds()), sql);
+
+    // Then:
+    assertThat(rows, hasSize(HEADER + 3));
+    for (final StreamedRow row : rows.subList(1, rows.size())) {
+      assertThat(row.getSourceHost(), is(Optional.empty()));
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -488,7 +519,7 @@ public class PullQueryFunctionalTest {
     );
   }
 
-  private static Optional<BasicCredentials> validCreds() {
+  private static Optional<Credentials> validCreds() {
     return Optional.of(BasicCredentials.of(
         USER_WITH_ACCESS,
         USER_WITH_ACCESS_PWD

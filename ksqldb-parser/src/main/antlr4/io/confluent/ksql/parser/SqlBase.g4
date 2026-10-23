@@ -68,7 +68,6 @@ statement
     | RESUME identifier                                                     #resumeQuery
     | RESUME ALL                                                            #resumeQuery
     | SET STRING EQ STRING                                                  #setProperty
-    | ALTER SYSTEM STRING EQ STRING                                         #alterSystemProperty
     | UNSET STRING                                                          #unsetProperty
     | DEFINE variableName EQ variableValue                                  #defineVariable
     | UNDEFINE variableName                                                 #undefineVariable

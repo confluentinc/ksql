@@ -21,14 +21,6 @@ SELECT [...], aggregate_function
   WINDOW HOPPING (SIZE <time_span> <time_units>, ADVANCE BY <time_span> <time_units>) [...]
 ```
 
-## ALTER SYSTEM
-Change a system-level property value (only available in {{ site.ccloud }}).
-
-
-```sql
-ALTER SYSTEM 'auto.offset.reset'='earliest';
-```
-
 ## ALTER STREAM
 Add new columns to a stream. This is not supported for streams defined using queries
 (`CREATE STREAM ... AS`).

@@ -18,10 +18,14 @@ package io.confluent.ksql.tools.test;
 import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.ServiceInfo;
@@ -78,9 +82,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
@@ -89,21 +90,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
-import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.TopologyTestDriver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SqlTestExecutor implements Closeable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-
-  private static final Logger LOG = LoggerFactory.getLogger(SqlTestExecutor.class);
 
   private static final ImmutableMap<String, Object> BASE_CONFIG = ImmutableMap
       .<String, Object>builder()
@@ -124,7 +119,7 @@ public class SqlTestExecutor implements Closeable {
   private KafkaTopicClient topicClient;
   private Path tmpFolder;
   private final Map<String, Object> overrides;
-  private final Map<QueryId, DriverAndProperties> drivers;
+  private final Map<QueryId, KsqlTopologyTestDriver> drivers;
 
   // populated during execution to handle the expected exception
   // scenario - don't use Matchers because they do not create very
@@ -135,7 +130,10 @@ public class SqlTestExecutor implements Closeable {
   public static SqlTestExecutor create(final Path tmpFolder) {
     final KafkaTopicClient topicClient = new StubKafkaTopicClient();
     final KafkaClientSupplier kafkaClientSupplier = new StubKafkaClientSupplier();
-    final SchemaRegistryClient srClient = new MockSchemaRegistryClient();
+    final SchemaRegistryClient srClient = new MockSchemaRegistryClient(ImmutableList.of(
+        new AvroSchemaProvider(),
+        new ProtobufSchemaProvider(),
+        new JsonSchemaProvider()));
     final ServiceContext serviceContext = new DefaultServiceContext(
         kafkaClientSupplier,
         () -> kafkaClientSupplier.getAdmin(Collections.emptyMap()),
@@ -152,7 +150,7 @@ public class SqlTestExecutor implements Closeable {
         DisabledKsqlClient::instance,
         new StubKafkaConsumerGroupClient()
     );
-    final Map<QueryId, DriverAndProperties> drivers = new HashMap<>();
+    final Map<QueryId, KsqlTopologyTestDriver> drivers = new HashMap<>();
     final KsqlConfig config = new KsqlConfig(BASE_CONFIG);
 
     return new SqlTestExecutor(
@@ -169,15 +167,7 @@ public class SqlTestExecutor implements Closeable {
                 new QueryEventListener() {
                   @Override
                   public void onDeregister(final QueryMetadata query) {
-                    final DriverAndProperties driverAndProperties = drivers.get(
-                        query.getQueryId()
-                    );
-                    closeDriver(
-                        driverAndProperties.driver,
-                        driverAndProperties.properties,
-                        false,
-                        tmpFolder
-                    );
+                    drivers.get(query.getQueryId()).close(false);
                   }
                 }
             ),
@@ -194,7 +184,7 @@ public class SqlTestExecutor implements Closeable {
       final KafkaTopicClient topicClient,
       final KsqlEngine ksqlEngine,
       final KsqlConfig config,
-      final Map<QueryId, DriverAndProperties> drivers,
+      final Map<QueryId, KsqlTopologyTestDriver> drivers,
       final Path tmpFolder
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -288,7 +278,7 @@ public class SqlTestExecutor implements Closeable {
     properties.putAll(query.getStreamsProperties());
     properties.put(StreamsConfig.STATE_DIR_CONFIG, tmpFolder.toString());
 
-    final TopologyTestDriver driver = new TopologyTestDriver(topology, properties);
+    final KsqlTopologyTestDriver driver = new KsqlTopologyTestDriver(topology, properties);
 
     final List<TopicInfo> inputTopics = query
         .getSourceNames()
@@ -307,7 +297,7 @@ public class SqlTestExecutor implements Closeable {
     );
 
     driverPipeline.addDriver(driver, inputTopics, outputInfo);
-    drivers.put(query.getQueryId(), new DriverAndProperties(driver, properties));
+    drivers.put(query.getQueryId(), driver);
   }
 
   private void pipeInput(final ConfiguredStatement<InsertValues> statement) {
@@ -420,61 +410,6 @@ public class SqlTestExecutor implements Closeable {
 
   private void handleExpectedMessage(final TestDirective directive) {
     expectedMessage = directive.getContents();
-  }
-
-  private static final class DriverAndProperties {
-    final TopologyTestDriver driver;
-    final Properties properties;
-
-    private DriverAndProperties(final TopologyTestDriver driver, final Properties properties) {
-      this.driver = driver;
-      this.properties = properties;
-    }
-  }
-
-  private static void closeDriver(
-      final TopologyTestDriver driver,
-      final Properties properties,
-      final boolean deleteState,
-      final Path tmpFolder
-  ) {
-    // this is a hack that lets us close the driver (releasing the lock on the state
-    // directory) without actually cleaning up the resources. This essentially simulates
-    // the behavior we have in QueryMetadata#close vs QueryMetadata#stop
-    //
-    // in production we have the additional safeguard of changelog topics, but the
-    // test driver doesn't support pre-loading state stores from changelog topics,
-    // so we're stuck with the solution of preserving the state store
-    final String appId = properties.getProperty(StreamsConfig.APPLICATION_ID_CONFIG);
-    final File stateDir = tmpFolder.resolve(appId).toFile();
-    final File tmp = tmpFolder.resolve("tmp_" + appId).toFile();
-
-    if (!deleteState && stateDir.exists()) {
-      try {
-        FileUtils.copyDirectory(stateDir, tmp);
-      } catch (final IOException e) {
-        if (!(e instanceof NoSuchFileException)) {
-          throw new KsqlException(e);
-        } else {
-          // Log a warning instead of throwing an exception when the state directory does not
-          // exist. The file could've been deleted manually by external factors.
-          LOG.warn("The state or temp directory '{}' do not exist. "
-                  + "The test will continue closing the driver.",
-              ((NoSuchFileException) e).getFile());
-        }
-      }
-    }
-
-    try {
-      driver.close();
-
-      if (tmp.exists()) {
-        FileUtils.copyDirectory(tmp, stateDir);
-        FileUtils.deleteDirectory(tmp);
-      }
-    } catch (final IOException e) {
-      throw new KsqlException(e);
-    }
   }
 
   private void createTopics(final PreparedStatement<?> engineStatement) {

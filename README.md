@@ -8,7 +8,7 @@ ksqlDB is a database for building stream processing applications on top of Apach
 
 * **[Streams](https://docs.ksqldb.io/en/latest/concepts/collections/streams/) and [tables](https://docs.ksqldb.io/en/latest/concepts/collections/tables/)** - Create relations with schemas over your Apache Kafka topic data
 * **[Materialized views](https://docs.ksqldb.io/en/latest/concepts/materialized-views/)** - Define real-time, incrementally updated materialized views over streams using SQL
-* **[Push queries](https://docs.ksqldb.io/en/latest/concepts/queries/push/)**- Continuous queries that push incremental results to clients in real time
+* **[Push queries](https://docs.ksqldb.io/en/latest/concepts/queries/push/)** - Continuous queries that push incremental results to clients in real time
 * **[Pull queries](https://docs.ksqldb.io/en/latest/concepts/queries/pull/)** - Query materialized views on demand, much like with a traditional database
 * **[Connect](https://docs.ksqldb.io/en/latest/concepts/connectors)** - Integrate with any [Kafka Connect](https://docs.confluent.io/current/connect/index.html) data source or sink, entirely from within ksqlDB
 

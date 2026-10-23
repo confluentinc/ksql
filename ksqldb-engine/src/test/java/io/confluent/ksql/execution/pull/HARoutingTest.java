@@ -60,6 +60,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlRateLimitException;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlRequestConfig;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.vertx.core.streams.WriteStream;
 import java.net.URI;
@@ -366,7 +367,7 @@ public class HARoutingTest {
 
     // When:
     final Exception e = assertThrows(
-        MaterializationException.class,
+        KsqlServerException.class,
         () -> haRouting.handlePullQuery(serviceContext, pullPhysicalPlan, statement, routingOptions,
             pullQueryQueue, disconnect)
     );
@@ -385,7 +386,7 @@ public class HARoutingTest {
 
     // When:
     final Exception e = assertThrows(
-        MaterializationException.class,
+        KsqlServerException.class,
         () -> haRouting.handlePullQuery(serviceContext, pullPhysicalPlan, statement, routingOptions,
             pullQueryQueue, disconnect)
     );

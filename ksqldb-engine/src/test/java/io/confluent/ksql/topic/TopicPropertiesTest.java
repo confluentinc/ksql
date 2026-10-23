@@ -52,13 +52,64 @@ public class TopicPropertiesTest {
             ImmutableList.of(
                 new TopicPartitionInfo(
                     0, new Node(0, "", 0), ImmutableList.of(new Node(0, "", 0)), ImmutableList.of()))),
-            () -> Collections.emptyMap())
+            () -> Collections.emptyMap(),
+            false)
         .build();
 
     // Then:
     assertThat(properties.getReplicas(), is((short) 3));
     assertThat(properties.getPartitions(), is(1));
     assertThat(properties.getRetentionInMillis(), is((long) 100));
+  }
+
+  @Test
+  public void shouldNotInheritReplicasFromSource() {
+    // When:
+    final TopicProperties properties = new TopicProperties.Builder()
+        .withName("name")
+        .withSource(() -> new TopicDescription(
+            "",
+            false,
+            ImmutableList.of(
+                new TopicPartitionInfo(
+                    0,
+                    new Node(0, "", 0),
+                    ImmutableList.of(new Node(0, "", 0), new Node(1, "", 1), new Node(2, "", 2)),
+                    ImmutableList.of()))),
+            () -> Collections.emptyMap(),
+            false)
+        .build();
+
+    // Then: the source topic's replication factor is not inherited. The created topic defers to
+    // the cluster default (DEFAULT_REPLICAS), so it is not created with an explicit replication
+    // factor that could differ from the cluster's default. Partitions are still inherited.
+    assertThat(properties.getReplicas(), is(TopicProperties.DEFAULT_REPLICAS));
+    assertThat(properties.getPartitions(), is(1));
+  }
+
+  @Test
+  public void shouldInheritReplicasFromSourceWhenConfigEnabled() {
+    // When:
+    final TopicProperties properties = new TopicProperties.Builder()
+        .withName("name")
+        .withSource(() -> new TopicDescription(
+            "",
+            false,
+            ImmutableList.of(
+                new TopicPartitionInfo(
+                    0,
+                    new Node(0, "", 0),
+                    ImmutableList.of(new Node(0, "", 0), new Node(1, "", 1), new Node(2, "", 2)),
+                    ImmutableList.of()))),
+            () -> Collections.emptyMap(),
+            true)
+        .build();
+
+    // Then: with inheritSourceReplicas=true (ksql.create.topic.inherit.source.replicas.enabled),
+    // the legacy behavior is restored -- the sink's replication factor matches the source
+    // topic's described replication factor.
+    assertThat(properties.getReplicas(), is((short) 3));
+    assertThat(properties.getPartitions(), is(1));
   }
 
   @Test
@@ -72,11 +123,12 @@ public class TopicPropertiesTest {
             ImmutableList.of(
                 new TopicPartitionInfo(
                     0, new Node(0, "", 0), ImmutableList.of(new Node(0, "", 0)), ImmutableList.of()))),
-            () -> Collections.emptyMap())
+            () -> Collections.emptyMap(),
+            false)
         .build();
 
     // Then:
-    assertThat(properties.getReplicas(), is((short) 1));
+    assertThat(properties.getReplicas(), is(TopicProperties.DEFAULT_REPLICAS));
     assertThat(properties.getPartitions(), is(3));
     assertThat(properties.getRetentionInMillis(), is((long) 100));
   }
@@ -96,11 +148,12 @@ public class TopicPropertiesTest {
                 Map<String, String> configsMap = new HashMap<>();
                 configsMap.put(TopicConfig.RETENTION_MS_CONFIG, "5000");
                 return configsMap;
-            })
+            },
+            false)
         .build();
 
     // Then:
-    assertThat(properties.getReplicas(), is((short) 1));
+    assertThat(properties.getReplicas(), is(TopicProperties.DEFAULT_REPLICAS));
     assertThat(properties.getPartitions(), is(3));
     assertThat(properties.getRetentionInMillis(), is((long) 100));
   }
@@ -120,11 +173,12 @@ public class TopicPropertiesTest {
               Map<String, String> configsMap = new HashMap<>();
               configsMap.put(TopicConfig.RETENTION_MS_CONFIG, "5000");
               return configsMap;
-            })
+            },
+            false)
         .build();
 
     // Then:
-    assertThat(properties.getReplicas(), is((short) 1));
+    assertThat(properties.getReplicas(), is(TopicProperties.DEFAULT_REPLICAS));
     assertThat(properties.getPartitions(), is(3));
     assertThat(properties.getRetentionInMillis(), is((long) 5000));
   }
@@ -242,7 +296,8 @@ public class TopicPropertiesTest {
         )
         .withSource(
             () -> {throw new RuntimeException();},
-            () -> Collections.emptyMap())
+            () -> Collections.emptyMap(),
+            false)
         .build();
 
     // Then:
@@ -272,12 +327,12 @@ public class TopicPropertiesTest {
     // When:
     final TopicProperties properties = new TopicProperties.Builder()
         .withName("name")
-        .withSource(source, () -> Collections.emptyMap())
+        .withSource(source, () -> Collections.emptyMap(), false)
         .build();
 
     // Then:
     assertThat(properties.getPartitions(), equalTo(1));
-    assertThat(properties.getReplicas(), equalTo((short) 1));
+    assertThat(properties.getReplicas(), equalTo(TopicProperties.DEFAULT_REPLICAS));
     assertThat(properties.getRetentionInMillis(), equalTo((long) 604800000));
   }
 }

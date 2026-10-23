@@ -15,18 +15,14 @@
 
 package io.confluent.ksql.logging.processing;
 
+import org.apache.logging.log4j.Logger;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.common.logging.StructuredLogger;
-import io.confluent.common.logging.StructuredLoggerFactory;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,13 +42,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class MeteredProcessingLoggerFactoryTest {
   @Mock
-  private StructuredLoggerFactory innerFactory;
-  @Mock
-  private StructuredLogger innerLogger;
+  private Logger innerLogger;
   @Mock
   private ProcessingLogConfig config;
   @Mock
-  private BiFunction<ProcessingLogConfig, StructuredLogger, ProcessingLogger> loggerFactory;
+  private BiFunction<ProcessingLogConfig, Logger, ProcessingLogger> loggerFactory;
   @Mock
   private Function<Metrics, BiFunction<ProcessingLogger, Sensor, ProcessingLogger>> loggerWithMetricsFactory;
   @Mock
@@ -69,11 +63,10 @@ public class MeteredProcessingLoggerFactoryTest {
   @Before
   public void setup() {
     metricCollectors = new MetricCollectors();
-    when(innerFactory.getLogger(anyString())).thenReturn(innerLogger);
-    when(loggerFactory.apply(config, innerLogger)).thenReturn(logger);
+    when(loggerFactory.apply(eq(config), any())).thenReturn(logger);
     when(loggerWithMetricsFactory.apply(any())).thenReturn(loggerWithMetricsFactoryHelper);
     when(loggerWithMetricsFactoryHelper.apply(any(), any())).thenReturn(loggerWithMetrics);
-    factory = new MeteredProcessingLoggerFactory(config, innerFactory, metricCollectors.getMetrics(), loggerFactory, loggerWithMetricsFactory, customMetricsTags);
+    factory = new MeteredProcessingLoggerFactory(config, metricCollectors.getMetrics(), loggerFactory, loggerWithMetricsFactory, customMetricsTags);
   }
 
   @Test
@@ -90,8 +83,7 @@ public class MeteredProcessingLoggerFactoryTest {
 
     // Then:
     assertThat(testLogger, is(this.loggerWithMetrics));
-    verify(innerFactory).getLogger("foo.bar");
-    verify(loggerFactory).apply(config, innerLogger);
+    verify(loggerFactory).apply(eq(config), any());
     verify(loggerWithMetricsFactory).apply(metricCollectors.getMetrics());
     verify(loggerWithMetricsFactoryHelper).apply(logger, sensor);
 
@@ -113,8 +105,7 @@ public class MeteredProcessingLoggerFactoryTest {
 
     // Then:
     assertThat(testLogger, is(this.loggerWithMetrics));
-    verify(innerFactory).getLogger("boo.far");
-    verify(loggerFactory).apply(config, innerLogger);
+    verify(loggerFactory).apply(eq(config), any());
     verify(loggerWithMetricsFactory).apply(metricCollectors.getMetrics());
     verify(loggerWithMetricsFactoryHelper).apply(logger, sensor);
 
@@ -131,8 +122,7 @@ public class MeteredProcessingLoggerFactoryTest {
     final Sensor sensor = metricCollectors.getMetrics().getSensor("boo.far");
 
     // Then:
-    verify(innerFactory, times(1)).getLogger("boo.far");
-    verify(loggerFactory, times(1)).apply(config, innerLogger);
+    verify(loggerFactory, times(1)).apply(eq(config), any());
     verify(loggerWithMetricsFactory, times(1)).apply(metricCollectors.getMetrics());
     verify(loggerWithMetricsFactoryHelper, times(1)).apply(logger, sensor);
   }
@@ -154,7 +144,7 @@ public class MeteredProcessingLoggerFactoryTest {
   @Test
   public void shouldHandleNullMetrics() {
     // Given:
-    final ProcessingLoggerFactory nullMetricsFactory = new MeteredProcessingLoggerFactory(config, innerFactory, null, loggerFactory, loggerWithMetricsFactory, customMetricsTags);
+    final ProcessingLoggerFactory nullMetricsFactory = new MeteredProcessingLoggerFactory(config, null, loggerFactory, loggerWithMetricsFactory, customMetricsTags);
 
     // When:
     final ProcessingLogger logger1 = nullMetricsFactory.getLogger("boo.far");

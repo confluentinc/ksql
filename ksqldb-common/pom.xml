@@ -22,12 +22,18 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.6.15-0</version>
+        <version>8.5.0-0</version>
     </parent>
 
     <artifactId>ksqldb-common</artifactId>
 
     <dependencies>
+
+        <dependency>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+            <version>4.0.2</version>
+        </dependency>
 
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
@@ -102,6 +108,14 @@
         <version>${io.confluent.ksql.version}</version>
       </dependency>
 
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bctls-fips</artifactId>
+            <version>${bouncycastle.tls-fips.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+
         <!-- Required for running tests -->
 
         <dependency>
@@ -117,6 +131,14 @@
             <version>${guava.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bc-fips</artifactId>
+            <version>${bouncycastle.fips.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>

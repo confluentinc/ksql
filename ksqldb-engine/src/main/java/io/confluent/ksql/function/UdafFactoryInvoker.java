@@ -24,7 +24,6 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
@@ -35,12 +34,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 class UdafFactoryInvoker implements FunctionSignature {
 
-  private static final Logger LOG = LoggerFactory.getLogger(UdafFactoryInvoker.class);
+  private static final Logger LOG = LogManager.getLogger(UdafFactoryInvoker.class);
 
   private final FunctionName functionName;
   private final Optional<Metrics> metrics;
@@ -93,7 +92,6 @@ class UdafFactoryInvoker implements FunctionSignature {
             : initArgs.args().toArray();
 
     try {
-      ExtensionSecurityManager.INSTANCE.pushInUdf();
       final Udaf udaf = (Udaf)method.invoke(null, factoryArgs);
       udaf.initializeTypeArguments(argTypeList);
       if (udaf instanceof Configurable) {
@@ -138,8 +136,6 @@ class UdafFactoryInvoker implements FunctionSignature {
     } catch (final Exception e) {
       LOG.error("Failed to invoke UDAF factory method", e);
       throw new KsqlException("Failed to invoke UDAF factory method", e);
-    } finally {
-      ExtensionSecurityManager.INSTANCE.popOutUdf();
     }
   }
 

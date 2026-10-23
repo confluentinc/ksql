@@ -17,7 +17,6 @@ package io.confluent.ksql.internal;
 
 import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_QUERY_ID_TAG;
 import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_TASK_ID_TAG;
-import static io.confluent.ksql.internal.MetricsTagUtils.SHARED_RUNTIME_THREAD_PATTERN;
 import static io.confluent.ksql.internal.MetricsTagUtils.UNSHARED_RUNTIME_THREAD_PATTERN;
 import static java.util.Objects.requireNonNull;
 import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl.TASK_ID_TAG;
@@ -48,12 +47,12 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class StorageUtilizationMetricsReporter implements MetricsReporter {
   private static final Logger LOGGER
-      = LoggerFactory.getLogger(StorageUtilizationMetricsReporter.class);
+      = LogManager.getLogger(StorageUtilizationMetricsReporter.class);
   private static final String METRIC_GROUP = "ksqldb_utilization";
   private static final String TASK_STORAGE_USED_BYTES = "task_storage_used_bytes";
 
@@ -276,12 +275,6 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   }
 
   private String getQueryId(final KafkaMetric metric) {
-    final String taskName = metric.metricName().tags().getOrDefault(TASK_ID_TAG, "");
-    final Matcher namedTopologyMatcher = SHARED_RUNTIME_THREAD_PATTERN.matcher(taskName);
-    if (namedTopologyMatcher.find()) {
-      return namedTopologyMatcher.group(1);
-    }
-
     final String queryIdTag = metric.metricName().tags().getOrDefault(THREAD_ID_TAG, "");
     final Matcher matcher = UNSHARED_RUNTIME_THREAD_PATTERN.matcher(queryIdTag);
     if (matcher.find()) {

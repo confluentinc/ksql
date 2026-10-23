@@ -36,8 +36,8 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * This class handles the parsing of the request body for a stream of inserts. The user can send a
@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
  */
 public class InsertsStreamHandler implements Handler<RoutingContext> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(InsertsStreamHandler.class);
+  private static final Logger LOG = LogManager.getLogger(InsertsStreamHandler.class);
 
   private final Context ctx;
   private final Endpoints endpoints;

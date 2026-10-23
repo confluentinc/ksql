@@ -43,12 +43,12 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.hc.core5.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class DescribeConnectorExecutor {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DescribeConnectorExecutor.class);
+  private static final Logger LOG = LogManager.getLogger(DescribeConnectorExecutor.class);
 
   @VisibleForTesting
   static final String TOPICS_KEY = "topics";

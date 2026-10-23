@@ -136,14 +136,14 @@
               "keyFormat": {"format": "KAFKA"},
               "partitions": 4,
               "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "optional"}},
-              "valueSchema": "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  optional int32 I = 1 [deprecated = false];\n  optional int64 L = 2 [deprecated = false];\n  optional double D = 3 [deprecated = false];\n  optional bool B = 4 [deprecated = false];\n  optional string S = 5 [deprecated = false];\n}\n"
+              "valueSchema": "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  optional int32 I = 1;\n  optional int64 L = 2;\n  optional double D = 3;\n  optional bool B = 4;\n  optional string S = 5;\n}\n"
             },
             {
               "name": "OUTPUT",
               "keyFormat": {"format": "KAFKA"},
               "partitions": 4,
               "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "optional"}},
-              "valueSchema": "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  optional int32 I = 1 [deprecated = false];\n  optional int64 L = 2 [deprecated = false];\n  optional double D = 3 [deprecated = false];\n  optional bool B = 4 [deprecated = false];\n  optional string S = 5 [deprecated = false];\n}\n"
+              "valueSchema": "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  optional int32 I = 1;\n  optional int64 L = 2;\n  optional double D = 3;\n  optional bool B = 4;\n  optional string S = 5;\n}\n"
             }
           ]
         }

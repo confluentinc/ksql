@@ -233,7 +233,8 @@ public class KsqlResourceTest {
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(ColumnName.of("f0"), new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.STRING))
+      new TableElement(ColumnName.of("f0"),
+          new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.STRING))
   );
   private static final PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement.of(
       "sql with schema",
@@ -355,9 +356,8 @@ public class KsqlResourceTest {
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
     final KsqlExecutionContext.ExecuteResult result = mock(KsqlExecutionContext.ExecuteResult.class);
     when(sandbox.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
-    when(result.getQuery()).thenReturn(Optional.empty());
 
-    MutableFunctionRegistry fnRegistry = new InternalFunctionRegistry();
+    final MutableFunctionRegistry fnRegistry = new InternalFunctionRegistry();
     final Metrics metrics = new Metrics();
     UserFunctionLoader.newInstance(ksqlConfig, fnRegistry, ".",
         metrics
@@ -778,15 +778,16 @@ public class KsqlResourceTest {
         Collections.singletonMap("ksql.streams.auto.offset.reset", "earliest");
 
     final List<PersistentQueryMetadata> queryMetadata = createQueries(
-        "CREATE STREAM test_describe_1 AS SELECT * FROM test_stream;" +
-            "CREATE STREAM test_describe_2 AS SELECT * FROM test_stream;", overriddenProperties);
+        "CREATE STREAM test_describe_1 AS SELECT * FROM test_stream;"
+            + "CREATE STREAM test_describe_2 AS SELECT * FROM test_stream;", overriddenProperties);
 
     // When:
     final QueryDescriptionList descriptionList = makeSingleRequest(
         "SHOW QUERIES EXTENDED;", QueryDescriptionList.class);
 
     final Map<KsqlHostInfoEntity, KsqlConstants.KsqlQueryStatus> queryHostState =
-        ImmutableMap.of(new KsqlHostInfoEntity(APPLICATION_HOST, APPLICATION_PORT), KsqlConstants.KsqlQueryStatus.RUNNING);
+        ImmutableMap.of(new KsqlHostInfoEntity(APPLICATION_HOST, APPLICATION_PORT),
+            KsqlConstants.KsqlQueryStatus.RUNNING);
     // Then:
     assertThat(descriptionList.getQueryDescriptions(), containsInAnyOrder(
         QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(0), queryHostState),
@@ -809,7 +810,8 @@ public class KsqlResourceTest {
     // When:
     final SourceDescriptionList descriptionList1 = makeSingleRequest(
         "SHOW STREAMS EXTENDED;", SourceDescriptionList.class);
-    when(commandRunnerWarning.get()).thenReturn(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
+    when(commandRunnerWarning.get()).thenReturn(
+        DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
     final SourceDescriptionList descriptionList2 = makeSingleRequest(
         "SHOW STREAMS EXTENDED;", SourceDescriptionList.class);
 
@@ -1825,8 +1827,7 @@ public class KsqlResourceTest {
     assertThat(response, instanceOf(KsqlStatementErrorMessage.class));
     assertThat(response.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
     assertThat(response.getMessage(),
-        containsString("Invalid value invalid value for configuration auto.offset.reset: "
-            + "String must be one of: latest, earliest, none"));
+        containsString("Invalid value invalid value for configuration auto.offset.reset"));
   }
 
   @Test
@@ -2639,36 +2640,6 @@ public class KsqlResourceTest {
     assertThat(response.getStatus(), equalTo(400));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
         containsString("prohibited by the KSQL server denylist"));
-  }
-
-  @Test
-  public void shouldRejectIsValidPropertyForNonQueryLevelPropertyWhenSharedRuntimeEnabled() {
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "");
-    givenKsqlConfigWith(ImmutableMap.of(
-        KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true
-    ));
-
-    // When:
-    final EndpointResponse response = ksqlResource.isValidProperty("ksql.service.id");
-
-    // Then:
-    assertThat(response.getStatus(), equalTo(400));
-  }
-
-  @Test
-  public void shouldAllowIsValidPropertyForQueryLevelPropertyWhenSharedRuntimeEnabled() {
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "");
-    givenKsqlConfigWith(ImmutableMap.of(
-        KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true
-    ));
-
-    // When:
-    final EndpointResponse response = ksqlResource.isValidProperty("ksql.streams.auto.offset.reset");
-
-    // Then:
-    assertThat(response.getStatus(), equalTo(200));
   }
 
   @Test

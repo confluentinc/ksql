@@ -16,8 +16,8 @@
 package io.confluent.support.metrics;
 
 import java.util.Properties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Use this config for component-specific phone-home clients. It disables writing metrics to Kafka
@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
  */
 public class PhoneHomeConfig extends BaseSupportConfig {
 
-  private static final Logger log = LoggerFactory
+  private static final Logger log = LogManager
       .getLogger(io.confluent.support.metrics.PhoneHomeConfig.class);
 
   private static final boolean CONFLUENT_SUPPORT_CUSTOMER_ID_ENABLED_DEFAULT = false;

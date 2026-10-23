@@ -1,0 +1,128 @@
+#
+# Copyright 2025 Confluent Inc.
+#
+# Licensed under the Confluent Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+# http://www.confluent.io/confluent-community-license
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+Configuration:
+  Properties:
+    Property:
+      - name: ksql.log.dir
+        value: ${sys:ksql.log.dir}
+  Appenders:
+    RollingFile:
+      - name: main
+        fileName: ${ksql.log.dir}/ksql.log
+        filePattern: ${ksql.log.dir}/ksql-%i.log
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+        Policies:
+          SizeBasedTriggeringPolicy:
+            size: 10MB
+        DefaultRolloverStrategy:
+          max: 5
+
+      - name: streams
+        fileName: ${ksql.log.dir}/ksql-streams.log
+        filePattern: ${ksql.log.dir}/ksql-streams-%i.log
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+        Policies:
+          SizeBasedTriggeringPolicy:
+            size: 10MB
+        DefaultRolloverStrategy:
+          max: 5
+
+      - name: kafka
+        fileName: ${ksql.log.dir}/ksql-kafka.log
+        filePattern: ${ksql.log.dir}/ksql-kafka-%i.log
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+        Policies:
+          SizeBasedTriggeringPolicy:
+            size: 10MB
+        DefaultRolloverStrategy:
+          max: 5
+
+    Kafka:
+      name: kafka_appender
+      topic: default_ksql_processing_log
+      syncSend: true
+      ignoreExceptions: false
+      StructuredJsonLayout:
+        Property:
+          - name: schemas.enable
+            value: false
+      Property:
+        - name: bootstrap.servers
+          value: localhost:9092
+
+  Loggers:
+    Root:
+      level: info
+      AppenderRef:
+        - ref: main
+
+    Logger:
+      - name: org.reflections
+        level: error
+        additivity: false
+        AppenderRef:
+          - ref: main
+
+      # Uncomment the following to stop KSQL from logging out each request it receives:
+      #- name: io.confluent.ksql.rest.server.resources.KsqlResource
+      #  level: warn
+
+      # And this one to avoid the logs being spammed with KsqlConfig values.
+      # Though these can be useful for debugging / investigations.
+      #- name: io.confluent.ksql.util.KsqlConfig
+      #  level: warn
+
+      - name: processing
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: kafka_appender
+
+      - name: org.apache.kafka.streams
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: streams
+
+      - name: org.apache.kafka.clients
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: clients
+
+      - name: org.apache.kafka.connect
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: connect
+
+      - name: kafka
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: kafka
+
+      - name: org.apache.kafka
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: kafka
+
+      - name: io.confluent.rest-utils.requests
+        level: warn

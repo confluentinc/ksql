@@ -27,14 +27,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
 public class KsqlRequest {
 
-  private static final Logger LOG = LoggerFactory.getLogger(KsqlRequest.class);
+  private static final Logger LOG = LogManager.getLogger(KsqlRequest.class);
 
   private final String ksql;
   private final ImmutableMap<String, Object> configOverrides;

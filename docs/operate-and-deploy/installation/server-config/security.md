@@ -196,7 +196,7 @@ An example `jaas_config.file` is:
 
 ```java
 KsqlServer-Props {
-  org.eclipse.jetty.jaas.spi.PropertyFileLoginModule required
+  org.eclipse.jetty.security.jaas.spi.PropertyFileLoginModule required
   file="/path/to/password-file"
   debug="false";
 };
@@ -302,7 +302,7 @@ dick: CRYPT:adpexzg3FUZAk,admin,ksql-user
 JAAS config file (`jaas_config.file`):
 ```java
 KsqlServer-Props {
-  org.eclipse.jetty.jaas.spi.PropertyFileLoginModule required
+  org.eclipse.jetty.security.jaas.spi.PropertyFileLoginModule required
   file="/path/to/password-file"
   debug="false";
 };

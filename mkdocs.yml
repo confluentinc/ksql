@@ -101,7 +101,6 @@ nav:
     - Statements:
       - SQL quick reference: developer-guide/ksqldb-reference/quick-reference.md
       - Statement Index: developer-guide/ksqldb-reference/index.md
-      - ALTER SYSTEM: developer-guide/ksqldb-reference/alter-system.md
       - ASSERT SCHEMA: developer-guide/ksqldb-reference/assert-schema.md
       - ASSERT TOPIC: developer-guide/ksqldb-reference/assert-topic.md
       - CREATE CONNECTOR: developer-guide/ksqldb-reference/create-connector.md
@@ -260,8 +259,6 @@ extra:
         srlong: Confluent Schema Registry
         sr: Schema Registry
         streaming: Event Streaming Platform
-        zkfull: Apache ZooKeeper™
-        zk: ZooKeeper
 
         # Build-related string tokens
         kafkaversion: 3.5

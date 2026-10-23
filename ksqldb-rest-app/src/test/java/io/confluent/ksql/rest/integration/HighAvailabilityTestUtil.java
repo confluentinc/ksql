@@ -16,9 +16,9 @@
 package io.confluent.ksql.rest.integration;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.HostStatusEntity;
@@ -28,7 +28,6 @@ import io.confluent.ksql.rest.entity.LagInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.Pair;
 import java.net.URI;
@@ -43,12 +42,12 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 class HighAvailabilityTestUtil {
 
-  private static final Logger LOG = LoggerFactory.getLogger(HighAvailabilityTestUtil.class);
+  private static final Logger LOG = LogManager.getLogger(HighAvailabilityTestUtil.class);
   private static final Pattern QUERY_ID_PATTERN = Pattern.compile("query with ID (\\S+)");
 
   static ClusterStatusResponse sendClusterStatusRequest(
@@ -58,7 +57,7 @@ class HighAvailabilityTestUtil {
 
   static ClusterStatusResponse sendClusterStatusRequest(
       final TestKsqlRestApp restApp,
-      final Optional<BasicCredentials> credentials) {
+      final Optional<Credentials> credentials) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(credentials)) {
       final RestResponse<ClusterStatusResponse> res = restClient
           .makeClusterStatusRequest();
@@ -98,7 +97,7 @@ class HighAvailabilityTestUtil {
       final TestKsqlRestApp restApp,
       final KsqlHostInfoEntity remoteServer,
       final BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean> function,
-      final Optional<BasicCredentials> credentials
+      final Optional<Credentials> credentials
   ) {
     return waitForRemoteServerToChangeStatus(
         restApp,
@@ -110,7 +109,7 @@ class HighAvailabilityTestUtil {
   static ClusterStatusResponse  waitForRemoteServerToChangeStatus(
       final TestKsqlRestApp restApp,
       final Function<Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean> function,
-      final Optional<BasicCredentials> credentials
+      final Optional<Credentials> credentials
   ) {
     while (true) {
       final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(restApp,
@@ -136,7 +135,7 @@ class HighAvailabilityTestUtil {
   static void waitForClusterToBeDiscovered(
       final TestKsqlRestApp restApp,
       final int numServers,
-      final Optional<BasicCredentials> credentials
+      final Optional<Credentials> credentials
   ) {
     while (true) {
       final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(
@@ -160,7 +159,7 @@ class HighAvailabilityTestUtil {
 
   static void waitForStreamsMetadataToInitialize(
       final TestKsqlRestApp restApp, List<KsqlHostInfoEntity> hosts,
-      final Optional<BasicCredentials> credentials
+      final Optional<Credentials> credentials
   ) {
     while (true) {
       ClusterStatusResponse clusterStatusResponse
@@ -235,7 +234,7 @@ class HighAvailabilityTestUtil {
       final TestKsqlRestApp restApp,
       final KsqlHostInfoEntity hostInfoEntity,
       final long timestamp,
-      final Optional<BasicCredentials> userCreds
+      final Optional<Credentials> userCreds
   ) {
 
     try (final KsqlRestClient restClient = restApp.buildInternalKsqlClient(userCreds)) {
@@ -259,7 +258,7 @@ class HighAvailabilityTestUtil {
       final TestKsqlRestApp restApp,
       final KsqlHostInfoEntity hostInfoEntity,
       final long timestamp,
-      final Optional<BasicCredentials> userCreds
+      final Optional<Credentials> userCreds
   ) {
 
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
@@ -458,7 +457,7 @@ class HighAvailabilityTestUtil {
   public static void makeAdminRequest(
       final TestKsqlRestApp restApp,
       final String sql,
-      final Optional<BasicCredentials> userCreds
+      final Optional<Credentials> userCreds
   ) {
     RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, userCreds);
   }
@@ -469,7 +468,7 @@ class HighAvailabilityTestUtil {
   }
 
   public static List<KsqlEntity> makeAdminRequestWithResponse(
-      TestKsqlRestApp restApp, final String sql, final Optional<BasicCredentials> userCreds) {
+      TestKsqlRestApp restApp, final String sql, final Optional<Credentials> userCreds) {
     return RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, userCreds);
   }
 
@@ -493,7 +492,7 @@ class HighAvailabilityTestUtil {
       final TestKsqlRestApp target,
       final String sql,
       final Map<String, ?> properties,
-      final Optional<BasicCredentials> userCreds
+      final Optional<Credentials> userCreds
   ) {
     return RestIntegrationTestUtil.makeQueryRequest(target, sql, userCreds,
         properties, ImmutableMap.of(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true));

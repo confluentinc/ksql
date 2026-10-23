@@ -36,6 +36,8 @@ import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.security.BasicCredentials;
+import io.confluent.ksql.security.Credentials;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpVersion;
 import java.io.Closeable;
@@ -77,7 +79,7 @@ public final class KsqlRestClient implements Closeable {
       final String serverAddress,
       final Map<String, ?> localProps,
       final Map<String, String> clientProps,
-      final Optional<BasicCredentials> creds
+      final Optional<Credentials> creds
   ) {
     return create(
         serverAddress,
@@ -103,7 +105,7 @@ public final class KsqlRestClient implements Closeable {
       final String serverAddress,
       final Map<String, ?> localProps,
       final Map<String, String> clientProps,
-      final Optional<BasicCredentials> creds,
+      final Optional<Credentials> creds,
       final Optional<BasicCredentials> ccloudApiKey
   ) {
     return create(
@@ -123,7 +125,7 @@ public final class KsqlRestClient implements Closeable {
       final String serverAddress,
       final Map<String, ?> localProps,
       final Map<String, String> clientProps,
-      final Optional<BasicCredentials> creds,
+      final Optional<Credentials> creds,
       final Optional<BasicCredentials> ccloudApiKey,
       final KsqlClientSupplier clientSupplier
   ) {
@@ -136,7 +138,7 @@ public final class KsqlRestClient implements Closeable {
   interface KsqlClientSupplier {
     KsqlClient get(
         Map<String, String> clientProps,
-        Optional<BasicCredentials> creds,
+        Optional<Credentials> creds,
         LocalProperties localProps
     );
   }

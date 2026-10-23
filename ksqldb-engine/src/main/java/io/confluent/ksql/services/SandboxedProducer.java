@@ -37,6 +37,8 @@ final class SandboxedProducer<K, V> {
     return LimitedProxyBuilder.forClass(Producer.class)
         .swallow("send", anyParams(), CompletableFuture.completedFuture(null))
         .swallow("close", anyParams())
+        .swallow("registerMetricForSubscription", anyParams())
+        .swallow("unregisterMetricFromSubscription", anyParams())
         .build();
   }
 

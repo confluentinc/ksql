@@ -258,7 +258,6 @@ public final class LimitedProxyBuilder<T> {
     }
   }
 
-  @SuppressWarnings("deprecation") // No alternative until Java 9.
   private static Method findMatchingMethod(final Object delegate, final Method proxyMethod) {
     try {
       final Method declaredMethod = delegate.getClass()
@@ -270,14 +269,14 @@ public final class LimitedProxyBuilder<T> {
                 + proxyMethod.getReturnType() + ", got:" + declaredMethod.getReturnType());
       }
 
-      if (!declaredMethod.isAccessible()) {
+      if (!declaredMethod.canAccess(delegate)) {
         declaredMethod.setAccessible(true);
       }
 
       return declaredMethod;
     } catch (final NoSuchMethodException e) {
       throw new IllegalArgumentException("Delegate does not have method: "
-          + "" + formatMethod(proxyMethod), e);
+          + formatMethod(proxyMethod), e);
     }
   }
 

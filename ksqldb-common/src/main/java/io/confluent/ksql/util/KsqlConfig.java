@@ -56,14 +56,14 @@ import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.config.internals.ConfluentConfigs;
-import org.apache.kafka.common.utils.AppInfoParser;
+import org.apache.kafka.common.utils.internals.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @EffectivelyImmutable
 public class KsqlConfig extends AbstractConfig {
-  private static final Logger LOG = LoggerFactory.getLogger(KsqlConfig.class);
+  private static final Logger LOG = LogManager.getLogger(KsqlConfig.class);
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 
@@ -248,7 +248,6 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_STREAMS_PREFIX = "ksql.streams.";
 
   public static final String KSQL_COLLECT_UDF_METRICS = "ksql.udf.collect.metrics";
-  public static final String KSQL_UDF_SECURITY_MANAGER_ENABLED = "ksql.udf.enable.security.manager";
 
   public static final String KSQL_INSERT_INTO_VALUES_ENABLED = "ksql.insert.into.values.enabled";
 
@@ -258,6 +257,12 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SECURITY_EXTENSION_DEFAULT = null;
   public static final String KSQL_SECURITY_EXTENSION_DOC = "A KSQL security extension class that "
       + "provides authorization to KSQL servers.";
+
+  public static final String KSQL_RESOURCE_EXTENSION_CLASS = "ksql.resource.extension.class";
+  public static final String KSQL_RESOURCE_EXTENSION_DEFAULT = null;
+  public static final String KSQL_RESOURCE_EXTENSION_DOC =
+      "A KSQL resource extension class that "
+      + "provides additional functionality to KSQL servers.";
 
   public static final String KSQL_ENABLE_ACCESS_VALIDATOR = "ksql.access.validator.enable";
   public static final String KSQL_ACCESS_VALIDATOR_ON = "on";
@@ -378,7 +383,7 @@ public class KsqlConfig extends AbstractConfig {
       "Config to enable pull queries that scan over the data";
   public static final boolean KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT = true;
 
-  public static final String KSQL_QUERY_STREAM_PULL_QUERY_ENABLED 
+  public static final String KSQL_QUERY_STREAM_PULL_QUERY_ENABLED
       = "ksql.query.pull.stream.enabled";
   public static final String KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DOC =
       "Config to enable pull queries on streams";
@@ -502,6 +507,25 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SHUTDOWN_TIMEOUT_MS_DOC = "Timeout in "
       + "milliseconds to block waiting for the underlying streams instance to exit";
 
+  public static final String KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_CONFIG =
+      "ksql.admin.request.retry.timeout.ms";
+  public static final Long KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_DEFAULT = 2500L;
+  public static final String KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_DOC = "Total time in "
+      + "milliseconds to keep retrying a retryable Kafka admin request (for example, describing a "
+      + "topic that was created moments earlier but whose metadata has not yet propagated) before "
+      + "giving up. The number of attempts is derived from this timeout and a fixed retry backoff.";
+
+  public static final String KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_CONFIG =
+      "ksql.create.topic.inherit.source.replicas.enabled";
+  public static final Boolean KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_DEFAULT = true;
+  public static final String KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_DOC = "If true (the "
+      + "default, matching prior behavior), CREATE ... AS SELECT inherits its sink topic's "
+      + "replication factor from the source topic's described replication factor. If false, "
+      + "the sink topic's replication factor is left unset so it resolves to the cluster's "
+      + "default replication factor instead -- set this to false if the cluster reports a "
+      + "describe-time replication factor that differs from its actual default and rejects a "
+      + "CreateTopics request whose explicit replication factor does not match that default.";
+
   public static final String KSQL_AUTH_CACHE_EXPIRY_TIME_SECS =
       "ksql.authorization.cache.expiry.time.secs";
   public static final Long KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DEFAULT = 30L;
@@ -514,6 +538,17 @@ public class KsqlConfig extends AbstractConfig {
   public static final Long KSQL_AUTH_CACHE_MAX_ENTRIES_DEFAULT = 10000L;
   public static final String KSQL_AUTH_CACHE_MAX_ENTRIES_DOC = "Controls the size of the cache "
       + "to a maximum number of KSQL authorization responses entries.";
+
+  public static final String KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_CONFIG =
+      "ksql.kafka.client.additional.config.prefixes";
+  public static final String KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_DEFAULT = "";
+  public static final String KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_DOC =
+      "Comma-separated list of configuration key prefixes that ksqlDB forwards to the "
+      + "internal Kafka clients (admin, producer and consumer) it builds. By default those "
+      + "clients receive only recognized Kafka client configurations; use this to also pass "
+      + "configurations required by custom client plugins whose keys are not registered Kafka "
+      + "client configs. Any configuration whose "
+      + "key starts with one of these prefixes is forwarded. Empty by default.";
 
   public static final String KSQL_HIDDEN_TOPICS_CONFIG = "ksql.hidden.topics";
   public static final String KSQL_HIDDEN_TOPICS_DEFAULT = "_confluent.*,__confluent.*"
@@ -599,15 +634,21 @@ public class KsqlConfig extends AbstractConfig {
   private static final Boolean KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DEFAULT = false;
   private static final String KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DOC =
       "Feature flag that enables configuration of client IP and PORT in internal ksql Kafka Client."
-      + " So that Kafka broker can get client IP and PORT for logging and other purposes";
+      + " So that Kafka broker can get client IP and PORT for logging and other purposes.";
+
+  public static final String KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED =
+      "ksql.proxy.protocol.local.mode.enabled";
+  private static final Boolean KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED_DEFAULT = false;
+  private static final String KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED_DOC =
+      "Feature flag that enables internal ksql Kafka Clients to use LOCAL mode for proxy protocol.";
 
   public static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED
       = "ksql.json_sr.converter.deserializer.enabled";
 
   private static final Boolean KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DEFAULT = true;
 
-  private static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC = ""
-      + "Feature flag that enables the use of the JsonSchemaConverter class for deserializing "
+  private static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC =
+      "Feature flag that enables the use of the JsonSchemaConverter class for deserializing "
       + "JSON_SR records. JsonSchemaConverter is required to support `anyOf` JSON_SR types. "
       + "This flag should be used to disable this feature only when users experience "
       + "deserialization issues caused by the JsonSchemaConverter. Otherwise, this flag should "
@@ -623,26 +664,11 @@ public class KsqlConfig extends AbstractConfig {
           + "not be materialized and pull queries won't be allowed on them. However, current "
           + "CREATE SOURCE [TABLE|STREAM] statements will continue being read-only.";
 
-  public static final String KSQL_SHARED_RUNTIME_ENABLED = "ksql.runtime.feature.shared.enabled";
-  public static final Boolean KSQL_SHARED_RUNTIME_ENABLED_DEFAULT = false;
-  public static final String KSQL_SHARED_RUNTIME_ENABLED_DOC =
-      "Deprecated. Feature flag for sharing streams runtimes. "
-          + "Default is false. If false, persistent queries will use separate "
-          + " runtimes, if true, new queries may share streams instances. "
-          + "This configuration is deprecated and will be removed in a future release.";
-
   public static final String KSQL_NEW_QUERY_PLANNER_ENABLED =
       "ksql.new.query.planner.enabled";
   private static final Boolean KSQL_NEW_QUERY_PLANNER_ENABLED_DEFAULT = false;
   private static final String KSQL_NEW_QUERY_PLANNER_ENABLED_DOC =
       "Feature flag that enables the new planner for persistent queries. Default is false.";
-
-  public static final String KSQL_SHARED_RUNTIMES_COUNT = "ksql.shared.runtimes.count";
-  public static final Integer KSQL_SHARED_RUNTIMES_COUNT_DEFAULT = 2;
-  public static final String KSQL_SHARED_RUNTIMES_COUNT_DOC =
-      "Controls how many runtimes queries are allocated over initially."
-          + "this is only used when ksql.runtime.feature.shared.enabled is true.";
-
 
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
@@ -1101,13 +1127,6 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.MEDIUM,
             "The minimum number of insync replicas for the internal topics of KSQL server."
         ).define(
-            KSQL_UDF_SECURITY_MANAGER_ENABLED,
-            ConfigDef.Type.BOOLEAN,
-            true,
-            ConfigDef.Importance.LOW,
-            "Enable the security manager for UDFs. Default is true and will stop UDFs from"
-               + " calling System.exit or executing processes"
-        ).define(
             KSQL_INSERT_INTO_VALUES_ENABLED,
             Type.BOOLEAN,
             true,
@@ -1119,6 +1138,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SECURITY_EXTENSION_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_SECURITY_EXTENSION_DOC
+        ).define(
+            KSQL_RESOURCE_EXTENSION_CLASS,
+            Type.STRING,
+            KSQL_RESOURCE_EXTENSION_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_RESOURCE_EXTENSION_DOC
         ).define(
             KSQL_DEFAULT_KEY_FORMAT_CONFIG,
             Type.STRING,
@@ -1229,6 +1254,18 @@ public class KsqlConfig extends AbstractConfig {
             Importance.MEDIUM,
             KSQL_SHUTDOWN_TIMEOUT_MS_DOC
         ).define(
+            KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_CONFIG,
+            Type.LONG,
+            KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_DOC
+        ).define(
+            KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_CONFIG,
+            Type.BOOLEAN,
+            KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_DEFAULT,
+            Importance.LOW,
+            KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_DOC
+        ).define(
             KSQL_AUTH_CACHE_EXPIRY_TIME_SECS,
             Type.LONG,
             KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DEFAULT,
@@ -1254,6 +1291,13 @@ public class KsqlConfig extends AbstractConfig {
             ConfigValidators.validRegex(),
             Importance.LOW,
             KSQL_READONLY_TOPICS_DOC
+        )
+        .define(
+            KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_CONFIG,
+            Type.LIST,
+            KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_DEFAULT,
+            Importance.LOW,
+            KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_DOC
         )
         .define(
             KSQL_TIMESTAMP_THROW_ON_INVALID,
@@ -1573,20 +1617,6 @@ public class KsqlConfig extends AbstractConfig {
             Importance.LOW,
             KSQL_LAMBDAS_ENABLED_DOC)
         .define(
-            KSQL_SHARED_RUNTIME_ENABLED,
-            Type.BOOLEAN,
-            KSQL_SHARED_RUNTIME_ENABLED_DEFAULT,
-            Importance.MEDIUM,
-            KSQL_SHARED_RUNTIME_ENABLED_DOC
-        )
-        .define(
-            KSQL_SHARED_RUNTIMES_COUNT,
-            Type.INT,
-            KSQL_SHARED_RUNTIMES_COUNT_DEFAULT,
-            Importance.MEDIUM,
-            KSQL_SHARED_RUNTIMES_COUNT_DOC
-        )
-        .define(
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED,
             Type.BOOLEAN,
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT,
@@ -1678,6 +1708,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DOC
         )
         .define(
+            KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED,
+            Type.BOOLEAN,
+            KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED_DOC
+        )
+        .define(
             KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS,
             Type.LONG,
             KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DEFAULT,
@@ -1691,6 +1728,13 @@ public class KsqlConfig extends AbstractConfig {
             ConfluentConfigs.ENABLE_FIPS_DEFAULT,
             Importance.LOW,
             ConfluentConfigs.ENABLE_FIPS_DOC
+        )
+        .define(
+            ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG,
+            Type.STRING,
+            ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG_DEFAULT,
+            Importance.LOW,
+            ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG_DOC
         );
 
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
@@ -1791,20 +1835,14 @@ public class KsqlConfig extends AbstractConfig {
 
   public KsqlConfig(final Map<?, ?> props) {
     this(ConfigGeneration.CURRENT, props);
-    if (props.containsKey(KSQL_SHARED_RUNTIME_ENABLED)) {
-      LOG.warn(
-          "'{}' is deprecated and will be removed in a future release. "
-              + "Please remove this configuration from your settings.",
-          KSQL_SHARED_RUNTIME_ENABLED
-      );
-    }
   }
 
   private KsqlConfig(final ConfigGeneration generation, final Map<?, ?> props) {
     super(configDef(generation), props);
 
+    warnOnRemovedConfigs();
+
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
-    streamsConfigDefaults.put(StreamsConfig.InternalConfig.STATE_UPDATER_ENABLED, false);
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
         .defaultCommitIntervalMsConfig);
     streamsConfigDefaults.put(
@@ -1849,6 +1887,25 @@ public class KsqlConfig extends AbstractConfig {
         });
 
     return configs.build();
+  }
+
+  private void warnOnRemovedConfigs() {
+    if (originals().containsKey("ksql.udf.enable.security.manager")) {
+      LOG.warn(
+          "'ksql.udf.enable.security.manager' is set but has been removed. "
+              + "The Java SecurityManager is no longer available. "
+              + "Please remove this setting from your configuration.");
+    }
+    if (originals().containsKey("ksql.runtime.feature.shared.enabled")) {
+      LOG.warn(
+          "'ksql.runtime.feature.shared.enabled' is set but has been removed. "
+              + "Please remove this setting from your configuration.");
+    }
+    if (originals().containsKey("ksql.shared.runtimes.count")) {
+      LOG.warn(
+          "'ksql.shared.runtimes.count' is set but has been removed. "
+              + "Please remove this setting from your configuration.");
+    }
   }
 
   private boolean getBooleanConfig(final String config, final boolean defaultValue) {
@@ -1905,6 +1962,7 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(AdminClientConfig.configNames()));
+    map.putAll(getAdditionalKafkaClientConfigs());
     // admin client metrics aren't used in Confluent deployment
     possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
@@ -1913,6 +1971,7 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getProducerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ProducerConfig.configNames()));
+    map.putAll(getAdditionalKafkaClientConfigs());
     // producer client metrics aren't used in Confluent deployment
     possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
@@ -1921,16 +1980,33 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getConsumerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ConsumerConfig.configNames()));
+    map.putAll(getAdditionalKafkaClientConfigs());
     // consumer client metrics aren't used in Confluent deployment
     possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
+  }
+
+  // Forwards any config whose key starts with one of the operator-supplied prefixes
+  // (KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_CONFIG) to the internal Kafka clients.
+  // getConfigsFor(...configNames()) keeps only recognized client configs, which drops any
+  // extra configs a custom client plugin may require; this lets a deployment opt those in
+  // without ksqlDB needing to know their concrete keys. Blank prefixes
+  // are ignored so an empty/unset value forwards nothing (byte-identical to prior behavior).
+  private Map<String, Object> getAdditionalKafkaClientConfigs() {
+    final Set<String> prefixes =
+        getList(KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_CONFIG).stream()
+            .map(String::trim)
+            .filter(prefix -> !prefix.isEmpty())
+            .collect(Collectors.toSet());
+    return prefixes.isEmpty() ? Collections.emptyMap() : getConfigsForPrefix(prefixes);
   }
 
   public Map<String, Object> addConfluentMetricsContextConfigsKafka(
       final Map<String,Object> props
   ) {
     final Map<String, Object> updatedProps = new HashMap<>(props);
-    final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis());
+    final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis(),
+            KsqlConstants.enableLoggingAppInfo);
     updatedProps.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_VERSION, appInfo.getVersion());
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_COMMIT_ID, appInfo.getCommitId());
@@ -2074,7 +2150,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static Map<String, String> parseStringAsMap(final String key, final String value) {
     try {
-      return value.equals("")
+      return value.isEmpty()
           ? Collections.emptyMap()
           : Splitter.on(",").trimResults().withKeyValueSeparator(":").split(value);
     } catch (final IllegalArgumentException e) {

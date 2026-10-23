@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndContinueProductionExceptionHandler;
@@ -72,12 +73,6 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, false));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
     assertThat(result, equalTo(LogMetricAndContinueExceptionHandler.class));
-  }
-
-  @Test
-  public void shouldBeAbleToGetSharedRuntimesEnabledValue() {
-    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true));
-    assertThat(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED), equalTo(true));
   }
 
   @Test
@@ -606,6 +601,41 @@ public class KsqlConfigTest {
   }
 
   @Test
+  public void shouldForwardConfiguredPrefixesToClients() {
+    // Given: two prefixes are configured, plus a config that matches neither.
+    final Map<String, Object> configs = new HashMap<>();
+    configs.put(KsqlConfig.KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_CONFIG,
+        "some.prefix., another.prefix.");
+    configs.put("some.prefix.a", "value1");
+    configs.put("another.prefix.b", "value2");
+    configs.put("unrelated.c", "value3");
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(configs);
+
+    // Then: configs under a configured prefix reach every client config map; others do not.
+    for (final Map<String, Object> clientConfigs : ImmutableList.of(
+        ksqlConfig.getKsqlAdminClientConfigProps(),
+        ksqlConfig.getProducerClientConfigProps(),
+        ksqlConfig.getConsumerClientConfigProps())) {
+      assertThat(clientConfigs, hasEntry("some.prefix.a", "value1"));
+      assertThat(clientConfigs, hasEntry("another.prefix.b", "value2"));
+      assertThat(clientConfigs, not(hasKey("unrelated.c")));
+    }
+  }
+
+  @Test
+  public void shouldForwardNothingExtraToClientsByDefault() {
+    // Given: no prefixes configured.
+    final KsqlConfig ksqlConfig =
+        new KsqlConfig(Collections.singletonMap("some.prefix.a", "value1"));
+
+    // Then: nothing extra is forwarded.
+    assertThat(ksqlConfig.getKsqlAdminClientConfigProps(), not(hasKey("some.prefix.a")));
+    assertThat(ksqlConfig.getProducerClientConfigProps(), not(hasKey("some.prefix.a")));
+    assertThat(ksqlConfig.getConsumerClientConfigProps(), not(hasKey("some.prefix.a")));
+  }
+
+  @Test
   public void shouldGetClientIPPortConfig() {
      // Given:
     final Map<String, Object> configs = new HashMap<>();
@@ -623,5 +653,25 @@ public class KsqlConfigTest {
     assertThat(ksqlConfig.getBoolean(KsqlConfig.KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED), is(true));
     assertThat(ksqlConfig1.getBoolean(KsqlConfig.KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED), is(false));
     assertThat(ksqlConfig2.getBoolean(KsqlConfig.KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED), is(false));
+  }
+
+  @Test
+  public void shouldGetClientProxyProtocolLocalModeConfig() {
+    // Given:
+    final Map<String, Object> configs = new HashMap<>();
+    configs.put("ksql.proxy.protocol.local.mode.enabled", "true");
+    final Map<String, Object> configs1 = new HashMap<>();
+    configs1.put("ksql.proxy.protocol.local.mode.enabled", "false");
+    // Default to false
+    final Map<String, Object> configs2 = new HashMap<>();
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(configs);
+    final KsqlConfig ksqlConfig1 = new KsqlConfig(configs1);
+    final KsqlConfig ksqlConfig2 = new KsqlConfig(configs2);
+
+    // When:
+    assertThat(ksqlConfig.getBoolean(KsqlConfig.KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED), is(true));
+    assertThat(ksqlConfig1.getBoolean(KsqlConfig.KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED), is(false));
+    assertThat(ksqlConfig2.getBoolean(KsqlConfig.KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED), is(false));
   }
 }

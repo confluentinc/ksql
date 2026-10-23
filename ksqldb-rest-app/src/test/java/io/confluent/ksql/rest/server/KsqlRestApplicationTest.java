@@ -55,6 +55,7 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
+import io.confluent.ksql.security.KsqlResourceExtension;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -113,6 +114,8 @@ public class KsqlRestApplicationTest {
   private CommandStore commandQueue;
   @Mock
   private KsqlSecurityExtension securityExtension;
+  @Mock
+  private KsqlResourceExtension ksqlResourceExtension;
   @Mock
   private ProcessingLogContext processingLogContext;
   @Mock
@@ -173,6 +176,11 @@ public class KsqlRestApplicationTest {
 
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("state.dir", "/tmp/cat"));
+    // startKsql() reads this to configure ExecutorUtil's (process-wide static) retry count --
+    // stub it to the real default so this mock doesn't leave that static state polluted with
+    // Mockito's default long (0, which computes to a single retry) for other tests in this JVM.
+    when(ksqlConfig.getLong(KsqlConfig.KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_CONFIG))
+        .thenReturn(KsqlConfig.KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_DEFAULT);
 
     when(response.getStatus()).thenReturn(200);
     when(response.getEntity()).thenReturn(new KsqlEntityList(
@@ -238,6 +246,15 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(securityExtension).close();
+  }
+
+  @Test
+  public void shouldCloseKsqlResourceExtensionOnClose() {
+    // When:
+    app.shutdown();
+
+    // Then:
+    verify(ksqlResourceExtension).close();
   }
 
   @Test
@@ -451,6 +468,7 @@ public class KsqlRestApplicationTest {
         versionCheckerAgent,
         apiSecurityContext -> new KsqlSecurityContext(Optional.empty(), serviceContext),
         securityExtension,
+        Optional.of(ksqlResourceExtension),
         Optional.empty(),
         serverState,
         processingLogContext,
@@ -469,6 +487,57 @@ public class KsqlRestApplicationTest {
         internalAdminClient,
         Instant.now()
     );
+  }
+
+  @Test
+  public void shouldResolveStableHashedNodeIdFromAdvertisedInterNodeListener() {
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.of(
+        KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://host-a:8088"));
+
+    final Optional<String> nodeId = KsqlRestApplication.resolveNodeId(config);
+
+    assertThat(nodeId.isPresent(), is(true));
+    // A short, opaque, lowercase-hex hash of host:port.
+    assertThat(nodeId.get().matches("[0-9a-f]{16}"), is(true));
+    // Deterministic: the same listener hashes to the same id across restarts.
+    assertThat(KsqlRestApplication.resolveNodeId(config), is(nodeId));
+  }
+
+  @Test
+  public void shouldResolveHashedNodeIdFromListenerWhenNoInterNodeListenerConfigured() {
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.of(
+        KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088"));
+
+    assertThat(KsqlRestApplication.resolveNodeId(config).get().matches("[0-9a-f]{16}"), is(true));
+  }
+
+  @Test
+  public void shouldResolveDistinctNodeIdsForDistinctListeners() {
+    final Optional<String> hostA = KsqlRestApplication.resolveNodeId(new KsqlRestConfig(
+        ImmutableMap.of(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://host-a:8088")));
+    final Optional<String> hostB = KsqlRestApplication.resolveNodeId(new KsqlRestConfig(
+        ImmutableMap.of(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://host-b:8088")));
+
+    assertThat(hostA, is(not(hostB)));
+  }
+
+  @Test
+  public void shouldResolveNodeIdForWildcardListenerSanitizedToLocalHost() {
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.of(
+        KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:8088"));
+
+    final Optional<String> nodeId = KsqlRestApplication.resolveNodeId(config);
+
+    assertThat(nodeId.isPresent(), is(true));
+    assertThat(nodeId.get().matches("[0-9a-f]{16}"), is(true));
+  }
+
+  @Test
+  public void shouldReturnEmptyNodeIdWhenAdvertisedListenerIsWildcard() {
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.of(
+        KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://0.0.0.0:8088"));
+
+    assertThat(KsqlRestApplication.resolveNodeId(config), is(Optional.empty()));
   }
 
 }

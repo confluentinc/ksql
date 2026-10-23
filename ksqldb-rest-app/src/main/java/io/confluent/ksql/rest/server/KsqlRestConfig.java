@@ -44,14 +44,15 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.ValidString;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.kafka.common.config.internals.ConfluentConfigs;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class KsqlRestConfig extends AbstractConfig {
 
-  private static final Logger log = LoggerFactory.getLogger(KsqlRestConfig.class);
+  private static final Logger log = LogManager.getLogger(KsqlRestConfig.class);
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(KsqlRestConfig.class);
+  private static final Logger LOGGER = LogManager.getLogger(KsqlRestConfig.class);
 
   public static final String LISTENERS_CONFIG = "listeners";
   protected static final String LISTENERS_DOC =
@@ -1145,5 +1146,25 @@ public class KsqlRestConfig extends AbstractConfig {
   public Map<String, String> getStringAsMap(final String key) {
     final String value = getString(key).trim();
     return KsqlConfig.parseStringAsMap(key, value);
+  }
+
+  /**
+   * Check if FIPS mode is enabled in the configuration.
+   *
+   * @return true if FIPS mode is enabled, false otherwise
+   */
+  public boolean isFipsEnabled() {
+    try {
+      final Object fipsConfig = originals().get(ConfluentConfigs.ENABLE_FIPS_CONFIG);
+      if (fipsConfig instanceof Boolean) {
+        return (Boolean) fipsConfig;
+      } else if (fipsConfig instanceof String) {
+        return Boolean.parseBoolean((String) fipsConfig);
+      }
+      return false;
+    } catch (final Exception e) {
+      log.debug("Could not determine FIPS mode from config, assuming disabled", e);
+      return false;
+    }
   }
 }

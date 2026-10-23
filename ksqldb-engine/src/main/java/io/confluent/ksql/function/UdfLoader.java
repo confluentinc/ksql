@@ -24,7 +24,6 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
-import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Method;
@@ -35,15 +34,15 @@ import java.util.function.Function;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Loads user defined functions (UDFs)
  */
 public class UdfLoader {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(UdfLoader.class);
+  private static final Logger LOGGER = LogManager.getLogger(UdfLoader.class);
 
   private final MutableFunctionRegistry functionRegistry;
   private final Optional<Metrics> metrics;
@@ -144,7 +143,7 @@ public class UdfLoader {
     final FunctionInvoker invoker = FunctionLoaderUtils.createFunctionInvoker(method);
     final String functionName = udfDescriptionAnnotation.name();
 
-    LOGGER.info("Adding function " + functionName + " for method " + method);
+    LOGGER.debug("Adding function {} for method {}", functionName, method);
 
     final List<ParameterInfo> parameters = FunctionLoaderUtils
         .createParameters(method, functionName, typeParser);
@@ -187,13 +186,8 @@ public class UdfLoader {
       final Object actualUdf = FunctionLoaderUtils.instantiateFunctionInstance(
           method.getDeclaringClass(), udfDescriptionAnnotation.name());
       if (actualUdf instanceof Configurable) {
-        ExtensionSecurityManager.INSTANCE.pushInUdf();
-        try {
-          ((Configurable) actualUdf)
-              .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
-        } finally {
-          ExtensionSecurityManager.INSTANCE.popOutUdf();
-        }
+        ((Configurable) actualUdf)
+            .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
       }
       final PluggableUdf theUdf = new PluggableUdf(invoker, actualUdf);
       return metrics.<Kudf>map(m -> new UdfMetricProducer(

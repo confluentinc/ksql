@@ -30,12 +30,12 @@ import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.StatusLine;
 import org.apache.hc.core5.util.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class WebClient {
 
-  private static final Logger log = LoggerFactory
+  private static final Logger log = LogManager
       .getLogger(io.confluent.support.metrics.utils.WebClient.class);
   private static final int REQUEST_TIMEOUT_MS = 2000;
   public static final int DEFAULT_STATUS_CODE = HttpStatus.SC_BAD_GATEWAY;

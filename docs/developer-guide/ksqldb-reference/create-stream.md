@@ -53,7 +53,7 @@ headers, the `HEADERS` columns are populated by an empty array.
 
 If two rows have the same `KEY`, no special processing is done. This
 situation is handled differently by a [ksqlDB TABLE](../create-table),
-as shown in the following suummary.
+as shown in the following summary.
 
 |                         |  STREAM   | TABLE          |
 | ----------------------- | --------- | -------------- |

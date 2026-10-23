@@ -45,16 +45,17 @@ import java.util.function.Supplier;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
+import org.apache.kafka.common.security.fips.FipsSecurityConfig;
 import org.apache.kafka.common.security.fips.FipsValidator;
 import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlServerMain {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger log = LoggerFactory.getLogger(KsqlServerMain.class);
+  private static final Logger log = LogManager.getLogger(KsqlServerMain.class);
 
   private final Executor shutdownHandler;
   private final Executable preconditionChecker;
@@ -197,7 +198,10 @@ public class KsqlServerMain {
   @VisibleForTesting
   static void validateFips(final KsqlConfig config, final KsqlRestConfig restConfig) {
     if (config.getBoolean(ConfluentConfigs.ENABLE_FIPS_CONFIG)) {
-      final FipsValidator fipsValidator = ConfluentConfigs.buildFipsValidator();
+      final String fipsModeStr = config.getString(ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG);
+      final FipsSecurityConfig.FipsMode fipsMode
+          = FipsSecurityConfig.FipsMode.fromString(fipsModeStr);
+      final FipsValidator fipsValidator = ConfluentConfigs.buildFipsValidator(fipsMode);
 
       // validate cipher suites and TLS version
       validateCipherSuites(fipsValidator, restConfig);
@@ -285,22 +289,18 @@ public class KsqlServerMain {
 
   private static void validateSrUrl(
       final FipsValidator fipsValidator, final KsqlRestConfig restConfig) {
-    if (!restConfig.originals()
+    if (restConfig.originals()
         .containsKey(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)) {
-      final String errorMsg = "The Ksql schema registry url property "
-          + "('ksql.schema.registry.url') is not specified.";
-      log.error(errorMsg);
-      throw new SecurityException(errorMsg);
-    }
-    try {
-      fipsValidator.validateRestProtocol(determineProtocol(
-          restConfig.originals().get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).toString()));
-    } catch (final Exception e) {
-      final String errorMsg = e.getMessage()
-          + "\nInvalid rest protocol for "
-          + KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY;
-      log.error(errorMsg);
-      throw new SecurityException(errorMsg);
+      try {
+        fipsValidator.validateRestProtocol(determineProtocol(
+            restConfig.originals().get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).toString()));
+      } catch (final Exception e) {
+        final String errorMsg = e.getMessage()
+            + "\nInvalid rest protocol for "
+            + KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY;
+        log.error(errorMsg);
+        throw new SecurityException(errorMsg);
+      }
     }
   }
 

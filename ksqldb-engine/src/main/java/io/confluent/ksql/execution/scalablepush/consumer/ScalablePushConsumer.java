@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.scalablepush.consumer;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.common.OffsetsRow;
 import io.confluent.ksql.execution.common.QueryRow;
@@ -44,12 +45,12 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public abstract class ScalablePushConsumer implements AutoCloseable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ScalablePushConsumer.class);
+  private static final Logger LOG = LogManager.getLogger(ScalablePushConsumer.class);
   private static final Duration POLL_TIMEOUT = Duration.ofMillis(5000L);
 
   protected final String topicName;
@@ -69,6 +70,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
 
   protected AtomicReference<Set<TopicPartition>> topicPartitions = new AtomicReference<>();
 
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public ScalablePushConsumer(
       final String topicName,
       final boolean windowed,

@@ -62,13 +62,11 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 @Category({IntegrationTest.class})
-@Ignore
 public class JsonFormatTest {
 
   private static final String inputTopic = "orders_topic";
@@ -100,7 +98,9 @@ public class JsonFormatTest {
   public void before() {
     streamName = "STREAM_" + COUNTER.getAndIncrement();
 
-    ksqlConfig = KsqlConfigTestUtil.create(TEST_HARNESS.kafkaBootstrapServers());
+    ksqlConfig = KsqlConfigTestUtil.create(
+        TEST_HARNESS.kafkaBootstrapServers(),
+        Collections.singletonMap(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false));
     serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient::instance);
     functionRegistry = new InternalFunctionRegistry();
     UserFunctionLoader.newInstance(

@@ -25,6 +25,7 @@ import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetric
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
@@ -247,6 +248,12 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     return queryMetricSum;
   }
   
+  @SuppressFBWarnings(
+      value = "USO_UNSAFE_STATIC_METHOD_SYNCHRONIZATION",
+      justification = "This class is only instantiated internally by the Kafka Streams metrics"
+          + " framework and its class object is never exposed to untrusted code, so"
+          + " synchronizing on the class monitor here is safe."
+  )
   public static synchronized BigInteger getMaxTaskUsage(final Metrics metricRegistry) {
     final Collection<KafkaMetric> taskMetrics = metricRegistry
         .metrics()

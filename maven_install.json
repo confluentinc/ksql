@@ -487,6 +487,7 @@
     "org.junit.platform:junit-platform-engine": 1229506932,
     "org.junit.platform:junit-platform-launcher": 1767517906,
     "org.junit.platform:junit-platform-reporting": -1845274752,
+    "org.junit.support:testng-engine": 1233837171,
     "org.junit.vintage:junit-vintage-engine": -935246180,
     "org.keycloak:keycloak-admin-client": 1110940482,
     "org.keycloak:keycloak-common": -2024972444,
@@ -1447,6 +1448,8 @@
     "org.junit.platform:junit-platform-launcher:jar:sources": -681302871,
     "org.junit.platform:junit-platform-reporting": 1562987825,
     "org.junit.platform:junit-platform-reporting:jar:sources": -139168509,
+    "org.junit.support:testng-engine": 364216850,
+    "org.junit.support:testng-engine:jar:sources": 1717570782,
     "org.junit.vintage:junit-vintage-engine": 129945319,
     "org.junit.vintage:junit-vintage-engine:jar:sources": 1043025630,
     "org.keycloak:keycloak-admin-client": 12390125,
@@ -4809,6 +4812,13 @@
       },
       "version": "1.14.4"
     },
+    "org.junit.support:testng-engine": {
+      "shasums": {
+        "jar": "ec80254342a89c02733e597a69f1d81b65e0fa984f872a7b415e8edffdd583b5",
+        "sources": "8f76837ebd1fce260271c886fdf9e195a560515a97c5c8280a84b6da2ca0cacc"
+      },
+      "version": "1.0.5"
+    },
     "org.junit.vintage:junit-vintage-engine": {
       "shasums": {
         "jar": "76317ecb621922d4c1430342285e4f7a75f0bf93e2528a8cf5004964fe5f8f8f",
@@ -8167,6 +8177,10 @@
       "org.apiguardian:apiguardian-api",
       "org.junit.platform:junit-platform-launcher",
       "org.opentest4j.reporting:open-test-reporting-tooling-spi"
+    ],
+    "org.junit.support:testng-engine": [
+      "org.junit.platform:junit-platform-engine",
+      "org.testng:testng"
     ],
     "org.junit.vintage:junit-vintage-engine": [
       "junit:junit",
@@ -14878,6 +14892,9 @@
       "org.junit.platform.reporting.shadow.org.opentest4j.reporting.events.root",
       "org.junit.platform.reporting.shadow.org.opentest4j.reporting.schema"
     ],
+    "org.junit.support:testng-engine": [
+      "org.junit.support.testng.engine"
+    ],
     "org.junit.vintage:junit-vintage-engine": [
       "org.junit.vintage.engine",
       "org.junit.vintage.engine.descriptor",
@@ -17023,6 +17040,8 @@
       "org.junit.platform:junit-platform-launcher:jar:sources",
       "org.junit.platform:junit-platform-reporting",
       "org.junit.platform:junit-platform-reporting:jar:sources",
+      "org.junit.support:testng-engine",
+      "org.junit.support:testng-engine:jar:sources",
       "org.junit.vintage:junit-vintage-engine",
       "org.junit.vintage:junit-vintage-engine:jar:sources",
       "org.keycloak:keycloak-admin-client",
@@ -18050,6 +18069,8 @@
       "org.junit.platform:junit-platform-launcher:jar:sources",
       "org.junit.platform:junit-platform-reporting",
       "org.junit.platform:junit-platform-reporting:jar:sources",
+      "org.junit.support:testng-engine",
+      "org.junit.support:testng-engine:jar:sources",
       "org.junit.vintage:junit-vintage-engine",
       "org.junit.vintage:junit-vintage-engine:jar:sources",
       "org.keycloak:keycloak-admin-client",
@@ -19077,6 +19098,8 @@
       "org.junit.platform:junit-platform-launcher:jar:sources",
       "org.junit.platform:junit-platform-reporting",
       "org.junit.platform:junit-platform-reporting:jar:sources",
+      "org.junit.support:testng-engine",
+      "org.junit.support:testng-engine:jar:sources",
       "org.junit.vintage:junit-vintage-engine",
       "org.junit.vintage:junit-vintage-engine:jar:sources",
       "org.keycloak:keycloak-admin-client",
@@ -20104,6 +20127,8 @@
       "org.junit.platform:junit-platform-launcher:jar:sources",
       "org.junit.platform:junit-platform-reporting",
       "org.junit.platform:junit-platform-reporting:jar:sources",
+      "org.junit.support:testng-engine",
+      "org.junit.support:testng-engine:jar:sources",
       "org.junit.vintage:junit-vintage-engine",
       "org.junit.vintage:junit-vintage-engine:jar:sources",
       "org.keycloak:keycloak-admin-client",
@@ -21616,6 +21641,16 @@
       ],
       "org.opentest4j.reporting.tooling.spi.htmlreport.Contributor": [
         "org.junit.platform.reporting.open.xml.JUnitContributor"
+      ]
+    },
+    "org.junit.support:testng-engine": {
+      "org.junit.platform.engine.TestEngine": [
+        "org.junit.support.testng.engine.TestNGTestEngine"
+      ]
+    },
+    "org.junit.support:testng-engine:jar:sources": {
+      "org.junit.platform.engine.TestEngine": [
+        "org.junit.support.testng.engine.TestNGTestEngine"
       ]
     },
     "org.junit.vintage:junit-vintage-engine": {

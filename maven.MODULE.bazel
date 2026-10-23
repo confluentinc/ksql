@@ -552,6 +552,7 @@ maven.install(
         "org.apache.avro:avro-compiler:1.12.2",
         "org.junit.jupiter:junit-jupiter-engine:5.14.4",
         "org.junit.platform:junit-platform-reporting:1.14.4",
+        "org.junit.support:testng-engine:1.0.5",  # TestNG on the JUnit Platform (surefire-testng's role)
     ],
     # Maven's exclusions (root dependencyManagement + FIPS enforcer bans) applied
     # globally: anything Coursier would add beyond Maven's resolved set.

@@ -7,6 +7,17 @@ bazel_dep(name = "rules_java", version = "9.6.1")
 bazel_dep(name = "bazel_skylib", version = "1.9.0")
 bazel_dep(name = "aspect_bazel_lib", version = "2.22.2")
 bazel_dep(name = "contrib_rules_jvm", version = "0.31.1")  # java_junit5_test + java_export
+
+# The JUnit 5 runner fails ABORTED tests unless they threw TestAbortedException;
+# testng-engine reports TestNG skips as ABORTED with SkipException. Count ABORTED
+# as skipped, like the JUnit Platform and surefire do (reactive-streams TCK).
+single_version_override(
+    module_name = "contrib_rules_jvm",
+    patch_strip = 1,
+    patches = ["//third_party:contrib_rules_jvm-aborted-is-skipped.patch"],
+    version = "0.31.1",
+)
+
 bazel_dep(name = "buildifier_prebuilt", version = "8.2.1.2")
 bazel_dep(name = "aspect_rules_lint", version = "2.3.0")  # format_multirun / lint (Phase 6)
 bazel_dep(name = "rules_shell", version = "0.6.1")  # sh_test for the parity-harness self-test

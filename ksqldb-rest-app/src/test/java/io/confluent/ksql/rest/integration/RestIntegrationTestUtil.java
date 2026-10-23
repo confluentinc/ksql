@@ -206,10 +206,36 @@ public final class RestIntegrationTestUtil {
       final Map<String, ?> properties,
       final Map<String, Object> requestProperties
   ) {
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
+    // debug.request is only honored on the internal listener, so tests that request debug info
+    // (e.g. to inspect sourceHost) go through it when the app has one.
+    final boolean useInternalListener = restApp.getInternalListener().isPresent()
+        && requestProperties != null
+        && Boolean.TRUE.equals(requestProperties.get(KsqlRequestConfig.KSQL_DEBUG_REQUEST));
+    try (final KsqlRestClient restClient = useInternalListener
+        ? restApp.buildInternalKsqlClient(userCreds)
+        : restApp.buildKsqlClient(userCreds)) {
 
       final RestResponse<List<StreamedRow>> res =
           restClient.makeQueryRequest(sql, null, properties, requestProperties);
+
+      throwOnError(res);
+
+      return res.getResponse();
+    }
+  }
+
+  /**
+   * Sends a query with debug.request set over the given client, which this closes. Unlike
+   * {@link #makeQueryRequest}, this never reroutes to the internal listener.
+   */
+  static List<StreamedRow> makeDebugQueryRequest(
+      final KsqlRestClient client,
+      final String sql
+  ) {
+    try (final KsqlRestClient restClient = client) {
+
+      final RestResponse<List<StreamedRow>> res = restClient.makeQueryRequest(
+          sql, null, null, ImmutableMap.of(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true));
 
       throwOnError(res);
 

@@ -80,7 +80,7 @@ public final class TestCasePlanWriter {
     final KsqlVersion version = KsqlVersion.parse(plan.getSpecNode().getVersion());
     if (version.getVersion().major() <= 5) {
       return PlannedTestUtils.PLAN_MAPPER.copy()
-          .setSerializationInclusion(Include.ALWAYS);
+          .setDefaultPropertyInclusion(Include.ALWAYS);
     }
 
     return PlannedTestUtils.PLAN_MAPPER;

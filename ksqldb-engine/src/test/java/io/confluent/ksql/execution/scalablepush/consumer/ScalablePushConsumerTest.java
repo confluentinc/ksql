@@ -85,11 +85,13 @@ public class ScalablePushConsumerTest {
 
   private static final ConsumerRecords<GenericKey, GenericRow> RECORDS_JUST0 = new ConsumerRecords<>(
       ImmutableMap.of(
-          TP0, ImmutableList.of(RECORD0_0, RECORD0_1, RECORD0_2))
+          TP0, ImmutableList.of(RECORD0_0, RECORD0_1, RECORD0_2)),
+      ImmutableMap.of()
   );
   private static final ConsumerRecords<GenericKey, GenericRow> RECORDS_JUST1 = new ConsumerRecords<>(
       ImmutableMap.of(
-          TP1, ImmutableList.of(RECORD1_0, RECORD1_1, RECORD1_2))
+          TP1, ImmutableList.of(RECORD1_0, RECORD1_1, RECORD1_2)),
+      ImmutableMap.of()
   );
 
   @Mock

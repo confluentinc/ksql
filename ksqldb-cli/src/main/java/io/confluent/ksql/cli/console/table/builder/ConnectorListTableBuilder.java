@@ -20,7 +20,7 @@ import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.ConnectorType;
 import java.util.List;
-import org.apache.commons.lang3.ObjectUtils;
+import java.util.Objects;
 
 public class ConnectorListTableBuilder implements TableBuilder<ConnectorList>  {
 
@@ -37,9 +37,9 @@ public class ConnectorListTableBuilder implements TableBuilder<ConnectorList>  {
             .stream()
             .map(info -> ImmutableList.of(
                 info.getName(),
-                ObjectUtils.defaultIfNull(info.getType(), ConnectorType.UNKNOWN).name(),
-                ObjectUtils.defaultIfNull(info.getClassName(), ""),
-                ObjectUtils.defaultIfNull(info.getState(), ""))))
+                Objects.requireNonNullElse(info.getType(), ConnectorType.UNKNOWN).name(),
+                Objects.requireNonNullElse(info.getClassName(), ""),
+                Objects.requireNonNullElse(info.getState(), ""))))
         .build();
   }
 }

@@ -20,7 +20,7 @@ import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.rest.entity.ConnectorPluginsList;
 import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo.PluginType;
 import java.util.List;
-import org.apache.commons.lang3.ObjectUtils;
+import java.util.Objects;
 
 public class ConnectorPluginsListTableBuilder implements TableBuilder<ConnectorPluginsList> {
   private static final List<String> HEADERS = ImmutableList.of(
@@ -35,8 +35,8 @@ public class ConnectorPluginsListTableBuilder implements TableBuilder<ConnectorP
             .stream()
             .map(info -> ImmutableList.of(
                 info.getClassName(),
-                ObjectUtils.defaultIfNull(info.getType(), PluginType.UNKNOWN).name(),
-                ObjectUtils.defaultIfNull(info.getVersion(), ""))))
+                Objects.requireNonNullElse(info.getType(), PluginType.UNKNOWN).name(),
+                Objects.requireNonNullElse(info.getVersion(), ""))))
       .build();
   }
 }

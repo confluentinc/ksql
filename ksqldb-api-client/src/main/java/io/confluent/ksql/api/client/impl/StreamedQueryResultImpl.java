@@ -23,19 +23,19 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.vertx.core.Context;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.reactivestreams.Subscriber;
 
 public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements StreamedQueryResult {
 
-  private static final Logger log = LoggerFactory.getLogger(StreamedQueryResultImpl.class);
+  private static final Logger log = LogManager.getLogger(StreamedQueryResultImpl.class);
 
   private final String queryId;
   private final ImmutableList<String> columnNames;

@@ -62,7 +62,7 @@ public final class OldApiUtils {
     final T requestObject;
     if (requestClass != null) {
       final Optional<T> optRequestObject = ServerUtils
-          .deserialiseObject(routingContext.getBody(), routingContext, requestClass);
+          .deserialiseObject(routingContext.body().buffer(), routingContext, requestClass);
       if (!optRequestObject.isPresent()) {
         return;
       }

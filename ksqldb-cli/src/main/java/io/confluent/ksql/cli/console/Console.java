@@ -126,7 +126,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.logging.log4j.LogManager;
@@ -827,7 +826,7 @@ public class Console implements Closeable {
     writer().println(String.format("%-20s : %s", "Type", description.getStatus().type()));
     writer().println(String.format("%-20s : %s", "State", status.connector().state()));
     writer().println(String.format("%-20s : %s", "WorkerId", status.connector().workerId()));
-    if (!ObjectUtils.defaultIfNull(status.connector().trace(), "").isEmpty()) {
+    if (!Objects.requireNonNullElse(status.connector().trace(), "").isEmpty()) {
       writer().println(String.format("%-20s : %s", "Trace", status.connector().trace()));
     }
 
@@ -840,7 +839,7 @@ public class Console implements Closeable {
               .map(task -> ImmutableList.of(
                   String.valueOf(task.id()),
                   task.state(),
-                  ObjectUtils.defaultIfNull(task.trace(), ""))))
+                  Objects.requireNonNullElse(task.trace(), ""))))
           .build();
       taskTable.print(this);
     }

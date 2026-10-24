@@ -20,8 +20,10 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.UpgradeRejectedException;
+import io.vertx.core.http.WebSocketClient;
+import io.vertx.core.http.WebSocketClientOptions;
+import io.vertx.core.http.WebSocketConnectOptions;
 import io.vertx.core.http.WebsocketVersion;
 import io.vertx.core.net.JksOptions;
 import java.net.URI;
@@ -44,12 +46,12 @@ public class WebsocketUtils {
       TestKsqlRestApp restApp, boolean tls)
       throws SSLHandshakeException, UpgradeRejectedException {
     Vertx vertx = Vertx.vertx();
-    io.vertx.core.http.HttpClient httpClient = null;
+    WebSocketClient webSocketClient = null;
     try {
 
-      HttpClientOptions httpClientOptions = new HttpClientOptions();
+      WebSocketClientOptions webSocketClientOptions = new WebSocketClientOptions();
       if (tls) {
-        httpClientOptions.setSsl(true).setVerifyHost(false);
+        webSocketClientOptions.setSsl(true).setVerifyHost(false);
 
         final Optional<JksOptions> trustStoreOptions =
             VertxSslOptionsFactory.getJksTrustStoreOptions(clientProps);
@@ -58,11 +60,11 @@ public class WebsocketUtils {
         final Optional<JksOptions> keyStoreOptions =
             VertxSslOptionsFactory.buildJksKeyStoreOptions(clientProps, Optional.ofNullable(alias));
 
-        trustStoreOptions.ifPresent(options -> httpClientOptions.setTrustStoreOptions(options));
-        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyStoreOptions(options));
+        trustStoreOptions.ifPresent(options -> webSocketClientOptions.setTrustOptions(options));
+        keyStoreOptions.ifPresent(options -> webSocketClientOptions.setKeyCertOptions(options));
       }
 
-      httpClient = vertx.createHttpClient(httpClientOptions);
+      webSocketClient = vertx.createWebSocketClient(webSocketClientOptions);
 
       URI listener = tls ? restApp.getWssListener() : restApp.getWsListener();
 
@@ -70,16 +72,22 @@ public class WebsocketUtils {
 
       CompletableFuture<Void> completableFuture = new CompletableFuture<>();
 
-      httpClient
-          .webSocketAbs(uri.toString(), headers, WebsocketVersion.V07,
-              Collections.emptyList(), ar -> {
-                if (ar.succeeded()) {
-                  ar.result().frameHandler(frame -> completableFuture.complete(null));
-                  ar.result().exceptionHandler(completableFuture::completeExceptionally);
-                } else {
-                  completableFuture.completeExceptionally(ar.cause());
-                }
-              });
+      final WebSocketConnectOptions connectOptions = new WebSocketConnectOptions()
+          .setAbsoluteURI(uri.toString())
+          .setHeaders(headers)
+          .setVersion(WebsocketVersion.V07)
+          .setSubProtocols(Collections.emptyList());
+
+      webSocketClient
+          .connect(connectOptions)
+          .onComplete(ar -> {
+            if (ar.succeeded()) {
+              ar.result().frameHandler(frame -> completableFuture.complete(null));
+              ar.result().exceptionHandler(completableFuture::completeExceptionally);
+            } else {
+              completableFuture.completeExceptionally(ar.cause());
+            }
+          });
       completableFuture.get(30, TimeUnit.SECONDS);
 
     } catch (Exception e) {
@@ -95,8 +103,8 @@ public class WebsocketUtils {
         throw new RuntimeException(e);
       }
     } finally {
-      if (httpClient != null) {
-        httpClient.close();
+      if (webSocketClient != null) {
+        webSocketClient.close();
       }
       vertx.close();
     }

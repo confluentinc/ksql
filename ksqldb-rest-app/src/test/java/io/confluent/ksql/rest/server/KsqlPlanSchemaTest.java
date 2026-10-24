@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.server.utils.KsqlPlanSchemaGenerator;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Ignore;
@@ -40,8 +41,11 @@ public class KsqlPlanSchemaTest {
     final JsonNode jsonSchema = KsqlPlanSchemaGenerator.generate();
 
     // Then:
-    final JsonNode expected = MAPPER.readTree(
-        KsqlPlanSchemaTest.class.getClassLoader().getResource(SCHEMA_PATH.toString()));
+    final JsonNode expected;
+    try (InputStream schema = KsqlPlanSchemaTest.class.getClassLoader()
+        .getResourceAsStream(SCHEMA_PATH.toString())) {
+      expected = MAPPER.readTree(schema);
+    }
     assertThat(
         "Detected a change to the schema of the KSQL physical plan. This is dangerous. "
             + "It means that KSQL may no longer be able to read and execute older plans. "

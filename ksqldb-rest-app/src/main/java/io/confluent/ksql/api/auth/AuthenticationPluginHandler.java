@@ -86,6 +86,7 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
       throw new UnsupportedOperationException();
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public User isAuthorized(
         final Authorization authority,

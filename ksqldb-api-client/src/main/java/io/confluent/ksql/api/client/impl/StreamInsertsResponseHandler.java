@@ -23,17 +23,17 @@ import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.reactivestreams.Publisher;
 
 public class StreamInsertsResponseHandler
     extends ResponseHandler<CompletableFuture<AcksPublisher>> {
 
-  private static final Logger log = LoggerFactory.getLogger(StreamInsertsResponseHandler.class);
+  private static final Logger log = LogManager.getLogger(StreamInsertsResponseHandler.class);
 
   private final AcksPublisherImpl acksPublisher;
   private boolean paused;

@@ -21,7 +21,6 @@ import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.MockAdminClient;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.MockConsumer;
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.MockProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.Node;
@@ -42,16 +41,16 @@ public class FakeKafkaClientSupplier implements KafkaClientSupplier {
 
   @Override
   public Consumer<byte[], byte[]> getConsumer(final Map<String, Object> config) {
-    return new MockConsumer<>(OffsetResetStrategy.LATEST);
+    return new MockConsumer<>("latest");
   }
 
   @Override
   public Consumer<byte[], byte[]> getRestoreConsumer(final Map<String, Object> config) {
-    return new MockConsumer<>(OffsetResetStrategy.LATEST);
+    return new MockConsumer<>("latest");
   }
 
   @Override
   public Consumer<byte[], byte[]> getGlobalConsumer(final Map<String, Object> config) {
-    return new MockConsumer<>(OffsetResetStrategy.LATEST);
+    return new MockConsumer<>("latest");
   }
 }

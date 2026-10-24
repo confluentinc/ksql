@@ -53,8 +53,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
+import org.apache.kafka.streams.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
@@ -243,7 +242,7 @@ final class SourceBuilderUtils {
       final SourceStep<?> streamSource,
       final Serde<K> keySerde,
       final Serde<GenericRow> valueSerde,
-      final Topology.AutoOffsetReset defaultReset,
+      final AutoOffsetReset defaultReset,
       final RuntimeBuildContext buildContext,
       final ConsumedFactory consumedFactory) {
     final TimestampExtractor timestampExtractor = timestampExtractor(
@@ -291,8 +290,8 @@ final class SourceBuilderUtils {
     };
   }
 
-  static Topology.AutoOffsetReset getAutoOffsetReset(
-      final Topology.AutoOffsetReset defaultValue,
+  static AutoOffsetReset getAutoOffsetReset(
+      final AutoOffsetReset defaultValue,
       final RuntimeBuildContext buildContext) {
     final Object offestReset = buildContext.getKsqlConfig()
         .getKsqlStreamConfigProps()
@@ -301,15 +300,29 @@ final class SourceBuilderUtils {
       return defaultValue;
     }
 
+    final String resetPolicy;
     try {
-      return AutoOffsetReset.valueOf(offestReset.toString().toUpperCase());
+      resetPolicy = offestReset.toString().toUpperCase();
     } catch (final Exception e) {
-      throw new ConfigException(
-          ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-          offestReset,
-          "Unknown value"
-      );
+      throw unknownAutoOffsetReset(offestReset);
     }
+
+    switch (resetPolicy) {
+      case "EARLIEST":
+        return AutoOffsetReset.earliest();
+      case "LATEST":
+        return AutoOffsetReset.latest();
+      default:
+        throw unknownAutoOffsetReset(offestReset);
+    }
+  }
+
+  private static ConfigException unknownAutoOffsetReset(final Object offsetReset) {
+    return new ConfigException(
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+        offsetReset,
+        "Unknown value"
+    );
   }
 
   static QueryContext addMaterializedContext(final SourceStep<?> step) {

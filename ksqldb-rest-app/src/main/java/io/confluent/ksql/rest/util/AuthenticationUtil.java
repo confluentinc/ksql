@@ -17,17 +17,17 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.security.KsqlAuthTokenProvider;
 import io.confluent.ksql.util.KsqlConfig;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.time.Clock;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class AuthenticationUtil {
 
   final Clock clock;
-  private static final Logger log = LoggerFactory.getLogger(AuthenticationUtil.class);
+  private static final Logger log = LogManager.getLogger(AuthenticationUtil.class);
   private static final String BEARER = "Bearer ";
 
   public AuthenticationUtil(final Clock clock) {
@@ -45,7 +45,7 @@ public class AuthenticationUtil {
       if (authTokenProvider.isPresent() && token.isPresent()) {
         try {
           final long tokenTimeout = authTokenProvider.get()
-              .getLifetimeMs(StringUtils.removeStart(token.get(), BEARER)) - clock.millis();
+              .getLifetimeMs(Strings.CS.removeStart(token.get(), BEARER)) - clock.millis();
           return Optional.of(Math.min(tokenTimeout, maxTimeout));
         } catch (final Exception e) {
           log.error(e.getMessage());

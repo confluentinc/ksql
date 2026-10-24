@@ -210,6 +210,12 @@ public class PullPhysicalPlanBuilder {
     } else if (lookupConstraints.stream().anyMatch(lc -> lc instanceof NonKeyConstraint)) {
       lookupConstraints = Collections.emptyList();
       return PullPhysicalPlanType.TABLE_SCAN;
+      // For issue #7174. Temporarily enable table scans if there are more than one key or if that
+      // key is a multi-column key.
+    } else if (lookupConstraints.stream().anyMatch(lc -> ((KeyConstraint) lc).getKey().size() > 1)
+        && queryPlannerOptions.getTableScansEnabled()) {
+      lookupConstraints = Collections.emptyList();
+      return PullPhysicalPlanType.TABLE_SCAN;
     } else if (lookupConstraints.stream().allMatch(lc -> ((KeyConstraint) lc).getOperator()
         == ConstraintOperator.EQUAL)) {
       return PullPhysicalPlanType.KEY_LOOKUP;

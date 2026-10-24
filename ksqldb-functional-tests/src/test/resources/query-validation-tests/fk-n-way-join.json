@@ -11,9 +11,24 @@
         "CREATE TABLE right_table (id3 BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
         "CREATE TABLE output AS SELECT id1, f1, f2, f3 FROM left_table JOIN middle_table ON id1 = id2 JOIN right_table ON f1 = id3;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported as part of n-way joins. Got LEFT_TABLE.F1 = RIGHT_TABLE.ID3."
+      "inputs": [
+        {"topic": "middle_topic", "key": 1, "value": {"F2": 100}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"F1": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 0, "value": {"F3": 4}, "timestamp": 11000},
+        {"topic": "middle_topic", "key": 8, "value": {"F2": 10}, "timestamp": 13000},
+        {"topic": "left_topic", "key": 8, "value": {"F1": 8}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"F1": 0, "F2": 100, "F3": null}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"F1": 0, "F2": 100, "F3": 4}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": {"F1": 8, "F2": 10, "F3": 4}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ID1 BIGINT KEY, F1 BIGINT, F2 BIGINT, F3 BIGINT"}
+        ]
       }
     },
     {

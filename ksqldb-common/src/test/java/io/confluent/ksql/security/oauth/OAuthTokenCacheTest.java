@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.security.oauth;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -128,4 +130,18 @@ public class OAuthTokenCacheTest {
 
   }
 
+  @Test
+  public void mutableTokenFieldsShouldBeVolatile() throws Exception {
+    // Regression: currentToken and cacheExpiryMs are written by setCurrentToken on the refresh
+    // thread and read by getCurrentToken / isTokenExpired from any thread that calls into
+    // CachedOAuthTokenRetriever. Without volatile, a reader can observe an updated cacheExpiryMs
+    // (so isTokenExpired() returns false) while still seeing a stale or null currentToken,
+    // producing NPE on getCurrentToken().value() in the cached-retriever fast path.
+    for (final String fieldName : new String[] {"currentToken", "cacheExpiryMs"}) {
+      final Field field = OAuthTokenCache.class.getDeclaredField(fieldName);
+      assertTrue(
+          fieldName + " must be volatile for cross-thread token cache visibility",
+          (field.getModifiers() & Modifier.VOLATILE) != 0);
+    }
+  }
 }

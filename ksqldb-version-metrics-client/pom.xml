@@ -79,7 +79,8 @@
             <plugin>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro-maven-plugin</artifactId>
-                <version>${avro.version}</version>
+                <!-- keep in sync with confluent-common-bom's avro.version -->
+                <version>1.12.2</version>
                 <executions>
                     <execution>
                         <phase>generate-sources</phase>

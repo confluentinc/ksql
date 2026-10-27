@@ -35,8 +35,6 @@
         <cli.main-class>${main-class}</cli.main-class>
         <docker.skip-build>true</docker.skip-build>
         <docker.skip-test>true</docker.skip-test>
-
-        <log4j2.version>2.25.5</log4j2.version>
     </properties>
 
     <dependencies>

@@ -16,12 +16,12 @@
 package io.confluent.ksql.api.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -34,6 +34,7 @@ import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.SocketAddress;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -74,7 +75,9 @@ public class OldApiUtilsTest {
         + "    \"table.whitelist\"='users',\n"
         + "    \"key\"='username');";
     final KsqlRequest req = new KsqlRequest(query, ImmutableMap.of(), ImmutableMap.of(), 1L);
-    when(routingContext.getBody()).thenReturn(ServerUtils.serializeObject(req));
+    final RequestBody requestBody = mock(RequestBody.class);
+    when(requestBody.buffer()).thenReturn(ServerUtils.serializeObject(req));
+    when(routingContext.body()).thenReturn(requestBody);
 
     // when, Then
     final String expected = "CREATE SOURCE CONNECTOR `test-connector` WITH "

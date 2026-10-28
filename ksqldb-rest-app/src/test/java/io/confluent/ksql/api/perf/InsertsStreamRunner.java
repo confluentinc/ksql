@@ -72,7 +72,7 @@ public class InsertsStreamRunner extends BasePerfRunner {
 
     client.post(8089, "localhost", "/inserts-stream")
         .as(BodyCodec.pipe(new RunnerUtils.ReceiveStream(parser)))
-        .sendStream(sendStream, ar -> {
+        .sendStream(sendStream).onComplete(ar -> {
         });
 
     Thread.sleep(ms);

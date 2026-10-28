@@ -36,7 +36,6 @@ import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.impl.ConcurrentHashSet;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
@@ -69,7 +68,7 @@ public class Server {
   private final KsqlRestConfig config;
   private final Endpoints endpoints;
   private final Map<PushQueryId, PushQueryHolder> queries = new ConcurrentHashMap<>();
-  private final Set<HttpConnection> connections = new ConcurrentHashSet<>();
+  private final Set<HttpConnection> connections = ConcurrentHashMap.newKeySet();
   private final int maxPushQueryCount;
   private final Set<String> deploymentIds = new HashSet<>();
   private final KsqlSecurityExtension securityExtension;
@@ -141,7 +140,7 @@ public class Server {
                 isProxyProtocolListener,
                 idleConnectionTimeoutSeconds),
             this, isInternalListener, loggingRateLimiter);
-        vertx.deployVerticle(serverVerticle, vcf);
+        vertx.deployVerticle(serverVerticle).onComplete(vcf);
         final int index = i;
         final CompletableFuture<String> deployFuture = vcf.thenApply(s -> {
           if (index == 0) {
@@ -200,7 +199,7 @@ public class Server {
     final List<CompletableFuture<Void>> undeployFutures = new ArrayList<>();
     for (String deploymentID : deploymentIds) {
       final VertxCompletableFuture<Void> future = new VertxCompletableFuture<>();
-      vertx.undeploy(deploymentID, future);
+      vertx.undeploy(deploymentID).onComplete(future);
       undeployFutures.add(future);
     }
     try {

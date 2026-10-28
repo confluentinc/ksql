@@ -127,7 +127,7 @@ public class WSQueryEndpointTest {
       configOverrideLogger.verify(
           () -> ConfigOverrideLogger.logRangeViolations(any(), any()), never());
     }
-    verify(serverWebSocket).writeFinalTextFrame(jsonCaptor.capture(), any());
+    verify(serverWebSocket).writeFinalTextFrame(jsonCaptor.capture());
     assertThat(jsonCaptor.getValue(), containsString("prohibited by the KSQL server denylist"));
   }
 

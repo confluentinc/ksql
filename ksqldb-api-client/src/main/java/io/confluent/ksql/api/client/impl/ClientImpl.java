@@ -746,13 +746,13 @@ public class ClientImpl implements Client {
     options.setHost(clientOptions.getHost());
     options.setURI(path);
 
-    httpClient.request(options, ar -> {
+    httpClient.request(options).onComplete(ar -> {
       if (ar.failed()) {
         cf.completeExceptionally(ar.cause());
       }
 
       HttpClientRequest request = ar.result();
-      request.response(response -> {
+      request.response().onComplete(response -> {
         if (response.failed()) {
           cf.completeExceptionally(response.cause());
         }
@@ -777,7 +777,7 @@ public class ClientImpl implements Client {
         request.end(requestBody);
       } else {
         final HttpClientRequest finalRequest = request;
-        finalRequest.sendHead(version -> finalRequest.writeCustomFrame(0, 0, requestBody));
+        finalRequest.sendHead().onSuccess(v -> finalRequest.writeCustomFrame(0, 0, requestBody));
       }
     });
   }
@@ -930,7 +930,7 @@ public class ClientImpl implements Client {
             clientOptions.getTrustStorePassword()
         );
 
-        options = options.setTrustStoreOptions(jksOptions);
+        options = options.setTrustOptions(jksOptions);
       }
     }
     if (!clientOptions.getKeyStore().isEmpty()) {
@@ -954,7 +954,7 @@ public class ClientImpl implements Client {
             Optional.of(clientOptions.getKeyAlias())
         );
 
-        options = options.setKeyStoreOptions(jksOptions);
+        options = options.setKeyCertOptions(jksOptions);
       }
     }
     return vertx.createHttpClient(options);

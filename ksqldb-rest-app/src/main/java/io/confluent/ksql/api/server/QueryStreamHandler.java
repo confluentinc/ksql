@@ -37,6 +37,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
 import java.time.Clock;
@@ -303,10 +304,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             routingContext.response().bytesWritten(),
             startTimeNanos);
       };
-      // Vert.x 5 only calls the end handler when the server ends the response; if the client
-      // goes away first only the close handler fires, so register the cleanup on both.
-      routingContext.response().endHandler(scalablePushQueryCleanup);
-      routingContext.response().closeHandler(scalablePushQueryCleanup);
+      onEndOrClose(routingContext.response(), scalablePushQueryCleanup);
     } else {
       final PushQueryHolder query = connectionQueryManager
           .createApiQuery(queryPublisher, routingContext.request());
@@ -331,10 +329,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             routingContext.response().bytesWritten(),
             startTimeNanos);
       };
-      // Vert.x 5 only calls the end handler when the server ends the response; if the client
-      // goes away first only the close handler fires, so register the cleanup on both.
-      routingContext.response().endHandler(pushQueryCleanup);
-      routingContext.response().closeHandler(pushQueryCleanup);
+      onEndOrClose(routingContext.response(), pushQueryCleanup);
     }
 
     final QueryStreamResponseWriter queryStreamResponseWriter
@@ -369,8 +364,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     // When response is complete, publisher should be closed. Vert.x 5 only calls the end handler
     // when the server ends the response, so also close the publisher if the client goes away.
     final Handler<Void> printCleanup = v -> endhandler(printPublisher, endedResponse);
-    routingContext.response().endHandler(printCleanup);
-    routingContext.response().closeHandler(printCleanup);
+    onEndOrClose(routingContext.response(), printCleanup);
 
     final PrintSubscriber printSubscriber = new PrintSubscriber(
         context,
@@ -394,6 +388,17 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final Builder projectionSchema = LogicalSchema.builder();
     schema.value().forEach(projectionSchema::valueColumn);
     return projectionSchema.build();
+  }
+
+  // Vert.x 5 only calls the end handler when the server ends the response; if the client goes
+  // away first only the close handler fires, so cleanup has to be registered on both. Callers
+  // guard against the handler running twice.
+  private static void onEndOrClose(
+      final HttpServerResponse response,
+      final Handler<Void> cleanup
+  ) {
+    response.endHandler(cleanup);
+    response.closeHandler(cleanup);
   }
 
   private static class CommonRequest {

@@ -20,7 +20,7 @@
   <parent>
     <artifactId>ksqldb-parent</artifactId>
     <groupId>io.confluent.ksql</groupId>
-    <version>8.0.8-0</version>
+    <version>8.0.9-0</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -110,15 +110,7 @@
 
     <dependency>
       <groupId>org.mockito</groupId>
-      <artifactId>mockito-inline</artifactId>
-      <version>${mockito.version}</version>
-      <scope>compile</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>${mockito.version}</version>
       <scope>compile</scope>
     </dependency>
 

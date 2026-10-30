@@ -178,9 +178,45 @@ public class SlidingWindowRateLimiterTest {
         assertEquals(1.0, getReject(metrics, tags), 0.0);
     }
 
+    @Test
+    public void shouldNotShareRejectCountWithOtherLimiterOnSameMetrics() {
+        // Given: pull and push limiters registered on one Metrics, as KsqlRestApplication does
+        final Metrics metrics = new Metrics();
+        final Map<String, String> tags = Collections.emptyMap();
+        final SlidingWindowRateLimiter pull =
+            new SlidingWindowRateLimiter(1, 5L * 1000L, "pull", metrics, tags);
+        final SlidingWindowRateLimiter push =
+            new SlidingWindowRateLimiter(1, 5L * 1000L, "push", metrics, tags);
+
+        // When: only the pull limiter rejects
+        pull.add(0L, 1148576L);
+        assertThrows(KsqlException.class, () -> pull.allow(KsqlQueryType.PULL, 1000L));
+
+        // Then: only the pull count moves
+        assertEquals(1.0, getReject(metrics, "pull", tags), 0.0);
+        assertEquals(0.0, getReject(metrics, "push", tags), 0.0);
+
+        // When: the push limiter rejects twice
+        push.add(0L, 1148576L);
+        assertThrows(KsqlException.class, () -> push.allow(KsqlQueryType.PUSH, 1000L));
+        assertThrows(KsqlException.class, () -> push.allow(KsqlQueryType.PUSH, 1001L));
+
+        // Then: each count reflects only its own rejects
+        assertEquals(1.0, getReject(metrics, "pull", tags), 0.0);
+        assertEquals(2.0, getReject(metrics, "push", tags), 0.0);
+    }
+
     private double getReject(final Metrics metrics, final Map<String, String> tags) {
+        return getReject(metrics, METRIC_PREFIX, tags);
+    }
+
+    private double getReject(
+        final Metrics metrics,
+        final String prefix,
+        final Map<String, String> tags
+    ) {
         final MetricName rejectMetricName = new MetricName(
-            METRIC_PREFIX + "-bandwidth-limit-reject-count",
+            prefix + "-bandwidth-limit-reject-count",
             "_confluent-ksql-limits",
             "The number of requests rejected by this limiter",
             tags

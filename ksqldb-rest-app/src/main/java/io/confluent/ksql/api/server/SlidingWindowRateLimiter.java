@@ -98,7 +98,9 @@ public class SlidingWindowRateLimiter {
         (metricConfig, l) -> throttleLimit - numBytesInWindow
     );
 
-    this.rejectSensor = metrics.sensor("bandwidth-limit-rejects");
+    // Sensor names are global to the Metrics instance: a name shared between limiter instances
+    // returns one sensor carrying every instance's counter, so each reject would count for all.
+    this.rejectSensor = metrics.sensor(metricNamespace + "-bandwidth-limit-rejects");
     rejectSensor.add(
         new MetricName(
             metricNamespace + "-bandwidth-limit-reject-count",

@@ -1,0 +1,98 @@
+load("//tools-bazel:ksql_defs.bzl", "KSQL_DUMMY_LICENSE_FIRST", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS", "classes_dir", "classes_dir_test_args")
+load("//tools-bazel:library_wrappers.bzl", "java_export", "java_library", "jvm_junit_test_classes")
+
+# avro-maven-plugin `schema` goal equivalent (stringType=String).
+genrule(
+    name = "avro_sources",
+    srcs = glob(["src/main/avro/*.avsc"]),
+    outs = ["avro_sources.srcjar"],
+    cmd = " && ".join([
+        "OUT=$$(mktemp -d)",
+        "$(location //tools-bazel/codegen:avro_compiler) $$OUT $(SRCS)",
+        "find $$OUT -name '*.java' | sed \"s#^$$OUT/##\" | sort > $$OUT/files",
+        "(cd $$OUT && $$OLDPWD/$(JAVABASE)/bin/jar cf $$OLDPWD/$@ @files)",
+    ]),
+    toolchains = ["@bazel_tools//tools/jdk:current_java_runtime"],
+    tools = ["//tools-bazel/codegen:avro_compiler"],
+)
+
+java_export(
+    name = "ksqldb-version-metrics-client",
+    srcs = glob(["src/main/java/**/*.java"]) + [":avro_sources"],
+    # Maven also publishes the test-jar (maven-jar-plugin test-jar goal).
+    classifier_artifacts = {"tests": ":ksqldb-version-metrics-client-tests"},
+    maven_coordinates = "io.confluent.ksql:ksqldb-version-metrics-client:$(maven_version)",
+    visibility = ["//visibility:public"],
+    deps = KSQL_PARENT_DEPS + [
+        "//ksqldb-common",
+        "//ksqldb-engine",
+        "@maven//:com_fasterxml_jackson_core_jackson_annotations",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_google_guava_guava",
+        "@maven//:org_apache_avro_avro",
+        "@maven//:org_apache_httpcomponents_client5_httpclient5",
+        "@maven//:org_apache_httpcomponents_core5_httpcore5",
+        "@maven//:org_apache_kafka_kafka_clients",
+    ],
+)
+
+# Stand-in for the Maven `tests` test-jar: the whole src/test tree,
+# compiled once and shared by this module's tests and downstream modules.
+java_library(
+    name = "ksqldb-version-metrics-client-tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = KSQL_PARENT_DEPS + [
+        ":ksqldb-version-metrics-client",
+        "//ksqldb-common:ksqldb-common-project",
+        "//ksqldb-execution:ksqldb-execution-project",
+        "//ksqldb-test-util",
+        "@maven//:junit_junit",
+        "@maven//:org_apache_httpcomponents_client5_httpclient5",
+        "@maven//:org_apache_httpcomponents_core5_httpcore5",
+        "@maven//:org_apache_kafka_connect_api",
+        "@maven//:org_apache_kafka_kafka_clients",
+        "@maven//:org_apache_kafka_kafka_streams",
+        "@maven//:org_easymock_easymock",
+        "@maven//:org_hamcrest_hamcrest_all",
+        "@maven//:org_mockito_mockito_core",
+        "@maven//:org_wiremock_wiremock",
+        "@maven//:org_wiremock_wiremock_jetty12",
+    ],
+)
+
+# Exploded main classes for ClassFinder-based tests (see ksql_defs.bzl).
+classes_dir(
+    name = "ksqldb-version-metrics-client-classes",
+    lib = ":ksqldb-version-metrics-client-lib",
+)
+
+jvm_junit_test_classes(
+    name = "ksqldb-version-metrics-client-test-suite",
+    classpath_first = KSQL_DUMMY_LICENSE_FIRST,
+    data = KSQL_TEST_DATA,
+    jvm_flags = KSQL_TEST_JVM_FLAGS,
+    per_test_args = {
+        "src/test/java/io/confluent/ksql/version/metrics/ImmutabilityTest.java": classes_dir_test_args("ksqldb-version-metrics-client"),
+    },
+    test_lib = ":ksqldb-version-metrics-client-tests",
+    test_srcs = [
+        "src/test/java/io/confluent/ksql/version/metrics/ImmutabilityTest.java",
+        "src/test/java/io/confluent/ksql/version/metrics/KsqlVersionCheckerAgentTest.java",
+        "src/test/java/io/confluent/ksql/version/metrics/KsqlVersionCheckerResponseHandlerTest.java",
+        "src/test/java/io/confluent/ksql/version/metrics/VersionCheckerIntegrationTest.java",
+        "src/test/java/io/confluent/ksql/version/metrics/collector/BasicCollectorTest.java",
+        "src/test/java/io/confluent/ksql/version/metrics/collector/KsqlModuleTypeTest.java",
+        "src/test/java/io/confluent/support/metrics/BaseSupportConfigTest.java",
+        "src/test/java/io/confluent/support/metrics/PhoneHomeConfigTest.java",
+        "src/test/java/io/confluent/support/metrics/common/FilterTest.java",
+        "src/test/java/io/confluent/support/metrics/common/UuidTest.java",
+        "src/test/java/io/confluent/support/metrics/common/time/TimeUtilsTest.java",
+        "src/test/java/io/confluent/support/metrics/submitters/ConfluentSubmitterTest.java",
+        "src/test/java/io/confluent/support/metrics/utils/JitterTest.java",
+        "src/test/java/io/confluent/support/metrics/utils/StringUtilsTest.java",
+        "src/test/java/io/confluent/support/metrics/utils/WebClientTest.java",
+        "src/test/java/io/confluent/support/metrics/validate/MetricsValidationTest.java",
+    ],
+    runtime_deps = KSQL_TEST_RUNTIME_DEPS,
+)

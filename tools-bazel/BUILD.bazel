@@ -1,0 +1,17 @@
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+exports_files([
+    "pom.tpl",
+    "stamp.sh",
+])
+
+# Runs normalize_jar.sh's self-test under `bazel test //...` so the harness's
+# PASS/FAIL logic is covered by CI, not just manual runs. Uses system zip/unzip
+# and sha256sum|shasum (a dev/CI-host tool dependency, like the rest of the
+# harness), so keep it out of the sandbox.
+sh_test(
+    name = "normalize_jar_test",
+    srcs = ["test_normalize_jar.sh"],
+    data = ["normalize_jar.sh"],
+    tags = ["no-sandbox"],
+)

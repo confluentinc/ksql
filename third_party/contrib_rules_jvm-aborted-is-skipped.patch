@@ -1,0 +1,35 @@
+diff --git a/java/src/com/github/bazel_contrib/contrib_rules_jvm/junit5/CommandLineSummary.java b/java/src/com/github/bazel_contrib/contrib_rules_jvm/junit5/CommandLineSummary.java
+index 5f4c466..a4fe665 100644
+--- a/java/src/com/github/bazel_contrib/contrib_rules_jvm/junit5/CommandLineSummary.java
++++ b/java/src/com/github/bazel_contrib/contrib_rules_jvm/junit5/CommandLineSummary.java
+@@ -1,5 +1,6 @@
+ package com.github.bazel_contrib.contrib_rules_jvm.junit5;
+ 
++import static org.junit.platform.engine.TestExecutionResult.Status.ABORTED;
+ import static org.junit.platform.engine.TestExecutionResult.Status.SUCCESSFUL;
+ 
+ import java.io.PrintWriter;
+@@ -38,6 +39,7 @@ public class CommandLineSummary implements TestExecutionListener {
+   @Override
+   public void executionFinished(TestIdentifier testIdentifier, TestExecutionResult result) {
+     if (result.getStatus().equals(SUCCESSFUL)
++        || result.getStatus().equals(ABORTED)
+         || !result.getThrowable().isPresent()
+         || result.getThrowable().map(JUnit4Utils::isReasonToSkipTest).orElse(false)) {
+       failures.remove(testIdentifier);
+diff --git a/java/src/com/github/bazel_contrib/contrib_rules_jvm/junit5/TestData.java b/java/src/com/github/bazel_contrib/contrib_rules_jvm/junit5/TestData.java
+index c16fa0e..3c5b83e 100644
+--- a/java/src/com/github/bazel_contrib/contrib_rules_jvm/junit5/TestData.java
++++ b/java/src/com/github/bazel_contrib/contrib_rules_jvm/junit5/TestData.java
+@@ -110,6 +110,11 @@ class TestData {
+       return true;
+     }
+ 
++    // Aborted means skipped on the JUnit Platform (e.g. TestNG SkipException via testng-engine).
++    if (getResult().getStatus() == TestExecutionResult.Status.ABORTED) {
++      return true;
++    }
++
+     return getResult().getThrowable().map(JUnit4Utils::isReasonToSkipTest).orElse(false);
+   }
+ 

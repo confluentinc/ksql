@@ -60,7 +60,8 @@ public class ConcurrencyLimiter {
         (metricConfig, l) -> semaphore.availablePermits()
     );
 
-    this.rejectSensor = metrics.sensor("concurrency-limit-rejects");
+    // Per-instance sensor name: see SlidingWindowRateLimiter.
+    this.rejectSensor = metrics.sensor(operationType + "-concurrency-limit-rejects");
     rejectSensor.add(
         new MetricName(
             operationType + "-concurrency-limit-reject-count",

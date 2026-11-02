@@ -109,6 +109,7 @@
         <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
         <apache.httpcomponents.version>5.6.3</apache.httpcomponents.version>
         <apache.httpcore5.version>5.4.3</apache.httpcore5.version>
+        <azure.keyvault.keys.version>4.10.6</azure.keyvault.keys.version>
         <!-- httpclient5 5.4.3 pulled this in transitively, but 5.6.3 no longer does,
              and ksqldb-engine's Encode/MD5 UDFs use it directly, so it must be
              declared explicitly now. -->
@@ -796,6 +797,14 @@
                 <groupId>org.apache.httpcomponents.core5</groupId>
                 <artifactId>httpcore5-h2</artifactId>
                 <version>${apache.httpcore5.version}</version>
+            </dependency>
+
+            <!-- Pin azure-security-keyvault-keys for the transitive copy pulled in via
+                 ce-kafka (4.10.1). CVE-2026-33117 (< 4.10.6). -->
+            <dependency>
+                <groupId>com.azure</groupId>
+                <artifactId>azure-security-keyvault-keys</artifactId>
+                <version>${azure.keyvault.keys.version}</version>
             </dependency>
 
             <dependency>

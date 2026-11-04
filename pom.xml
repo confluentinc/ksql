@@ -135,6 +135,8 @@
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
+        <!-- keep in sync with confluent-common-bom's avro.version -->
+        <avro.maven.plugin.version>1.12.2</avro.maven.plugin.version>
         <apache.curator.version>5.2.0</apache.curator.version>
         <wiremock.version>3.12.0</wiremock.version>
         <icu.version>67.1</icu.version>

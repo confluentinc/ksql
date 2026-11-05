@@ -84,8 +84,8 @@ import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.AutoOffsetReset;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -330,7 +330,7 @@ public class SourceBuilderV1Test {
     streamSource.build(planBuilder, planInfo);
 
     // Then:
-    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.latest());
   }
 
   @Test
@@ -342,7 +342,7 @@ public class SourceBuilderV1Test {
     windowedStreamSource.build(planBuilder, planInfo);
 
     // Then:
-    verify(consumedWindowed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
+    verify(consumedWindowed).withOffsetResetPolicy(AutoOffsetReset.latest());
   }
 
   @Test
@@ -357,7 +357,7 @@ public class SourceBuilderV1Test {
     streamSource.build(planBuilder, planInfo);
 
     // Then:
-    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.earliest());
   }
 
   @Test
@@ -394,7 +394,7 @@ public class SourceBuilderV1Test {
     validator.verify(ktable).transformValues(any(ValueTransformerWithKeySupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
-    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.earliest());
   }
 
   @Test
@@ -416,7 +416,7 @@ public class SourceBuilderV1Test {
     validator.verify(ktable).transformValues(any(ValueTransformerWithKeySupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
-    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.earliest());
 
     verify(consumed).withValueSerde(serdeCaptor.capture());
     final StaticTopicSerde<GenericRow> value = serdeCaptor.getValue();
@@ -440,7 +440,7 @@ public class SourceBuilderV1Test {
     validator.verify(ktable).transformValues(any(ValueTransformerWithKeySupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
-    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.earliest());
 
     verify(ktable, never()).mapValues(any(ValueMapper.class), any(Materialized.class));
   }
@@ -473,7 +473,7 @@ public class SourceBuilderV1Test {
     tableSourceV1.build(planBuilder, planInfo);
 
     // Then:
-    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.earliest());
   }
 
   @Test
@@ -485,7 +485,7 @@ public class SourceBuilderV1Test {
     windowedTableSource.build(planBuilder, planInfo);
 
     // Then:
-    verify(consumedWindowed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+    verify(consumedWindowed).withOffsetResetPolicy(AutoOffsetReset.earliest());
   }
 
   @Test
@@ -500,7 +500,7 @@ public class SourceBuilderV1Test {
     tableSourceV1.build(planBuilder, planInfo);
 
     // Then:
-    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.latest());
   }
 
   @Test

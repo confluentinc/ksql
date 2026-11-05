@@ -112,34 +112,39 @@ public class CommonTestUtil {
   static final ConsumerRecords<Windowed<GenericKey>, GenericRow> WRECORDS1 = new ConsumerRecords<>(
       ImmutableMap.of(
           TP0, ImmutableList.of(WRECORD0_0, WRECORD0_1),
-          TP1, ImmutableList.of(WRECORD1_0))
+          TP1, ImmutableList.of(WRECORD1_0)),
+      ImmutableMap.of()
   );
   static final ConsumerRecords<Windowed<GenericKey>, GenericRow> WRECORDS2 = new ConsumerRecords<>(
       ImmutableMap.of(
           TP0, ImmutableList.of(WRECORD0_2),
-          TP1, ImmutableList.of(WRECORD1_1, WRECORD1_2))
+          TP1, ImmutableList.of(WRECORD1_1, WRECORD1_2)),
+      ImmutableMap.of()
   );
 
   static final ConsumerRecords<GenericKey, GenericRow> RECORDS1 = new ConsumerRecords<>(
       ImmutableMap.of(
           TP0, ImmutableList.of(RECORD0_0, RECORD0_1),
-          TP1, ImmutableList.of(RECORD1_0))
+          TP1, ImmutableList.of(RECORD1_0)),
+      ImmutableMap.of()
   );
   static final  ConsumerRecords<GenericKey, GenericRow> RECORDS2 = new ConsumerRecords<>(
       ImmutableMap.of(
           TP0, ImmutableList.of(RECORD0_2),
-          TP1, ImmutableList.of(RECORD1_1, RECORD1_2))
+          TP1, ImmutableList.of(RECORD1_1, RECORD1_2)),
+      ImmutableMap.of()
   );
   static final ConsumerRecords<GenericKey, GenericRow> RECORDS_FROM_OFFSET2 = new ConsumerRecords<>(
       ImmutableMap.of(
           TP0, ImmutableList.of(RECORD0_2, RECORD0_3),
-          TP1, ImmutableList.of(RECORD1_2, RECORD1_3))
+          TP1, ImmutableList.of(RECORD1_2, RECORD1_3)),
+      ImmutableMap.of()
   );
   static final ConsumerRecords<GenericKey, GenericRow> EMPTY_RECORDS = new ConsumerRecords<>(
-      ImmutableMap.of());
+      ImmutableMap.of(), ImmutableMap.of());
 
   static final ConsumerRecords<Windowed<GenericKey>, GenericRow> WEMPTY_RECORDS
-      = new ConsumerRecords<>(ImmutableMap.of());
+      = new ConsumerRecords<>(ImmutableMap.of(), ImmutableMap.of());
 
   static void verifyQueryRows(
       final ProcessingQueue queue, final Collection<QueryRow> rows) {

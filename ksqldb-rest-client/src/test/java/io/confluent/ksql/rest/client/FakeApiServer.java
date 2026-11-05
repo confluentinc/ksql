@@ -96,7 +96,7 @@ public class FakeApiServer extends AbstractVerticle {
     httpMethod = request.method();
     path = request.path();
     headers = request.headers();
-    body = routingContext.getBody();
+    body = routingContext.body().buffer();
     if (bodyFuture != null) {
       bodyFuture.complete(body);
     }

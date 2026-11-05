@@ -38,7 +38,7 @@ public class InternalEndpointHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    if (INTERNAL_PATHS.contains(routingContext.normalisedPath())
+    if (INTERNAL_PATHS.contains(routingContext.normalizedPath())
         && !isFromInternalListener) {
       routingContext.fail(HttpResponseStatus.BAD_REQUEST.code(),
           new KsqlApiException("Can't call internal endpoint on public listener",

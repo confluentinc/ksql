@@ -65,7 +65,8 @@ public class ConsumerCollectorTest {
               )
           )
       );
-      final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+      final ConsumerRecords<Object, Object> consumerRecords =
+          new ConsumerRecords<>(records, ImmutableMap.of());
 
       collector.onConsume(consumerRecords);
     }
@@ -124,8 +125,10 @@ public class ConsumerCollectorTest {
           )
       );
 
-      final ConsumerRecords<Object, Object> consumerRecords1 = new ConsumerRecords<>(records1);
-      final ConsumerRecords<Object, Object> consumerRecords2 = new ConsumerRecords<>(records2);
+      final ConsumerRecords<Object, Object> consumerRecords1 =
+          new ConsumerRecords<>(records1, ImmutableMap.of());
+      final ConsumerRecords<Object, Object> consumerRecords2 =
+          new ConsumerRecords<>(records2, ImmutableMap.of());
 
       collector.onConsume(consumerRecords1);
       collector.onConsume(consumerRecords2);
@@ -166,7 +169,8 @@ public class ConsumerCollectorTest {
           )
       );
 
-      final ConsumerRecords<Object, Object> consumerRecords1 = new ConsumerRecords<>(records1);
+      final ConsumerRecords<Object, Object> consumerRecords1 =
+          new ConsumerRecords<>(records1, ImmutableMap.of());
       collector.onConsume(consumerRecords1);
     }
 

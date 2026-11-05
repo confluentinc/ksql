@@ -394,6 +394,7 @@ public class CommandStoreTest {
               InternalTopicSerdes.serializer().serialize(null, args[i]),
               args[i + 1] == null ? null : InternalTopicSerdes.serializer().serialize(null, args[i + 1])));
     }
-    return new ConsumerRecords<>(Collections.singletonMap(COMMAND_TOPIC_PARTITION, records));
+    return new ConsumerRecords<>(Collections.singletonMap(COMMAND_TOPIC_PARTITION, records),
+        Collections.emptyMap());
   }
 }

@@ -21,6 +21,7 @@ import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
@@ -32,7 +33,7 @@ public class TestAppender extends AbstractAppender {
   private final List<LogEvent> log = new ArrayList<>();
 
   public TestAppender(final String name, final Layout<?> layout) {
-    super(name, null, layout, false);
+    super(name, null, layout, false, Property.EMPTY_ARRAY);
   }
 
   @PluginFactory

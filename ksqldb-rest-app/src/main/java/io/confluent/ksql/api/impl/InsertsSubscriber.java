@@ -210,7 +210,10 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
   }
 
   private void executeOnWorker(final Runnable runnable) {
-    workerExecutor.executeBlocking(p -> runnable.run(), false, ar -> {
+    workerExecutor.executeBlocking(() -> {
+      runnable.run();
+      return null;
+    }, false).onComplete(ar -> {
       if (ar.failed()) {
         log.error("Failed to close producer", ar.cause());
       }

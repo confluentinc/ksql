@@ -30,8 +30,6 @@ import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.Pair;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,10 +42,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.streams.state.HostInfo;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 
 public final class RemoteHostExecutor {
-  private static final Logger LOG = LoggerFactory.getLogger(RemoteHostExecutor.class);
+  private static final Logger LOG = LogManager.getLogger(RemoteHostExecutor.class);
 
   private final ConfiguredStatement<?> statement;
   private final SessionProperties sessionProperties;

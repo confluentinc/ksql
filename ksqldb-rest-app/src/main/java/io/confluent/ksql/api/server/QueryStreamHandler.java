@@ -183,7 +183,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final Map<String, Object> requestProperties;
     if (queryCompatibilityMode) {
       final Optional<KsqlRequest> ksqlRequest = ServerUtils
-          .deserialiseObject(routingContext.getBody(), routingContext, KsqlRequest.class);
+          .deserialiseObject(routingContext.body().buffer(), routingContext, KsqlRequest.class);
       if (!ksqlRequest.isPresent()) {
         return null;
       }
@@ -195,7 +195,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       requestProperties = ksqlRequest.get().getRequestProperties();
     } else {
       final Optional<QueryStreamArgs> queryStreamArgs = ServerUtils
-          .deserialiseObject(routingContext.getBody(), routingContext, QueryStreamArgs.class);
+          .deserialiseObject(routingContext.body().buffer(), routingContext, QueryStreamArgs.class);
       if (!queryStreamArgs.isPresent()) {
         return null;
       }

@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.hc.core5.http.HttpStatus;
 
 public final class ConnectExecutor {
@@ -217,7 +217,7 @@ public final class ConnectExecutor {
     return connectorsResponse.datum()
         .get()
         .stream()
-        .filter(connector -> StringUtils.equalsIgnoreCase(createConnector.getName(), connector))
+        .filter(connector -> Strings.CI.equals(createConnector.getName(), connector))
         .findAny()
         .isPresent();
   }

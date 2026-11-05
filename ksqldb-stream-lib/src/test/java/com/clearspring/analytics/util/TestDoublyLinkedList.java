@@ -50,7 +50,7 @@ public class TestDoublyLinkedList {
         assertFalse(list.isEmpty());
         assertEquals(3, list.size());
         assertArrayEquals(new Integer[]{1, 2, 3}, list.toArray());
-        assertEquals(new Integer(1), list.first());
+        assertEquals(Integer.valueOf(1), list.first());
     }
 
     @Test
@@ -68,8 +68,8 @@ public class TestDoublyLinkedList {
         assertFalse(list.isEmpty());
         assertEquals(3, list.size());
         assertArrayEquals(new Integer[]{3, 2, 1}, list.toArray());
-        assertEquals(new Integer(3), list.first());
-        assertEquals(new Integer(1), list.last());
+        assertEquals(Integer.valueOf(3), list.first());
+        assertEquals(Integer.valueOf(1), list.last());
     }
 
     @Test
@@ -87,7 +87,7 @@ public class TestDoublyLinkedList {
         assertFalse(list.isEmpty());
         assertEquals(3, list.size());
         assertArrayEquals(new Integer[]{1, 2, 3}, list.toArray());
-        assertEquals(new Integer(1), list.first());
+        assertEquals(Integer.valueOf(1), list.first());
     }
 
     @Test
@@ -104,7 +104,7 @@ public class TestDoublyLinkedList {
         ListNode2<Integer> node5 = list.addAfter(node4, 5);
         assertEquals(5, list.size());
         assertArrayEquals(new Integer[]{1, 2, 3, 4, 5}, list.toArray());
-        assertEquals(new Integer(5), list.last());
+        assertEquals(Integer.valueOf(5), list.last());
         assertEquals(node5, list.head());
     }
 
@@ -118,7 +118,7 @@ public class TestDoublyLinkedList {
         ListNode2<Integer> node2 = list.add(2);
         list.remove(node1);
         assertEquals(1, list.size());
-        assertEquals(new Integer(2), list.first());
+        assertEquals(Integer.valueOf(2), list.first());
         assertEquals(node2, list.head());
         assertArrayEquals(new Integer[]{2}, list.toArray());
         list.remove(node2);
@@ -128,7 +128,7 @@ public class TestDoublyLinkedList {
         node2 = list.add(2);
         list.remove(node2);
         assertEquals(1, list.size());
-        assertEquals(new Integer(1), list.first());
+        assertEquals(Integer.valueOf(1), list.first());
         assertEquals(node1, list.head());
         assertArrayEquals(new Integer[]{1}, list.toArray());
 
@@ -139,7 +139,7 @@ public class TestDoublyLinkedList {
         list.remove(node2);
         assertEquals(2, list.size());
         assertEquals(node1, list.tail());
-        assertEquals(new Integer(3), list.last());
+        assertEquals(Integer.valueOf(3), list.last());
         assertArrayEquals(new Integer[]{1, 3}, list.toArray());
     }
 

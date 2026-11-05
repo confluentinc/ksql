@@ -70,9 +70,36 @@ public class RateLimiterTest {
     assertThat(getReject(metrics, tags), is(1.0));
   }
 
+  @Test
+  public void shouldNotShareRejectCountWithOtherLimiterOnSameMetrics() {
+    // Given: two limiters registered on one Metrics
+    final Metrics metrics = new Metrics();
+    final Map<String, String> tags = Collections.emptyMap();
+    // It doesn't look like the underlying guava rate limiter has a way to control time, so we're
+    // just going to have to hope that these tests reliably run in under a second.
+    final RateLimiter limiter = new RateLimiter(1, METRIC_NAMESPACE, metrics, tags);
+    new RateLimiter(1, "other", metrics, tags);
+
+    // When: only the first limiter rejects
+    limiter.checkLimit();
+    assertThrows(KsqlException.class, limiter::checkLimit);
+
+    // Then: only its count moves
+    assertThat(getReject(metrics, METRIC_NAMESPACE, tags), is(1.0));
+    assertThat(getReject(metrics, "other", tags), is(0.0));
+  }
+
   private double getReject(final Metrics metrics, final Map<String, String> tags) {
+    return getReject(metrics, METRIC_NAMESPACE, tags);
+  }
+
+  private double getReject(
+      final Metrics metrics,
+      final String namespace,
+      final Map<String, String> tags
+  ) {
     final MetricName rejectMetricName = new MetricName(
-        METRIC_NAMESPACE + "-rate-limit-reject-count",
+        namespace + "-rate-limit-reject-count",
         "_confluent-ksql-limits",
         "The number of requests rejected by this limiter",
         tags

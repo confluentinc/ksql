@@ -264,7 +264,9 @@ public class RecoveryTest {
           ()->{},
           Optional.of((sc, metastore, statement) -> { }),
           errorHandler,
-          denyListPropertyValidator
+          denyListPropertyValidator,
+          new Metrics(),
+          Collections.emptyMap()
       );
 
       this.ksqlResource.configure(ksqlConfig);

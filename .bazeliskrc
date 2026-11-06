@@ -1,0 +1,2 @@
+BAZELISK_BASE_URL=https://github.com/aspect-build/aspect-cli-legacy/releases/download
+USE_BAZEL_VERSION=aspect/2026.2.2

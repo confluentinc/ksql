@@ -1,0 +1,47 @@
+load("@rules_java//java:defs.bzl", "java_library", "java_plugin")
+
+# Maven `provided`-scope dependencies: on the compile classpath, not shipped
+# and not in the published POM's compile/runtime closure. `neverlink` keeps
+# them off runtime classpaths; tests depend on the real @maven target instead
+# (Maven puts provided deps on the test classpath).
+[
+    java_library(
+        name = name + "-neverlink",
+        neverlink = True,
+        tags = ["maven:compile-only"],
+        visibility = ["//visibility:public"],
+        exports = [label],
+    )
+    for name, label in [
+        ("bctls_fips", "@maven//:org_bouncycastle_bctls_fips"),
+        ("netty_tcnative_boringssl_static", "@maven//:io_netty_netty_tcnative_boringssl_static"),
+        ("spotbugs_annotations", "@maven//:com_github_spotbugs_spotbugs_annotations"),
+    ]
+]
+
+# Annotation processors javac auto-discovers from the Maven compile classpath
+# (META-INF/services/javax.annotation.processing.Processor). Bazel only runs
+# processors that are wired explicitly, so modules that declare log4j2
+# @Plugin classes (ksqldb-common, ksqldb-cli, ksqldb-test-util) use these to
+# produce the same Log4j2Plugins.dat + native-image reflect-config.json.
+java_plugin(
+    name = "log4j_plugin_processor",
+    processor_class = "org.apache.logging.log4j.core.config.plugins.processor.PluginProcessor",
+    visibility = ["//visibility:public"],
+    deps = ["@maven//:org_apache_logging_log4j_log4j_core"],
+)
+
+java_plugin(
+    name = "log4j_graalvm_processor",
+    processor_class = "org.apache.logging.log4j.core.config.plugins.processor.GraalVmProcessor",
+    visibility = ["//visibility:public"],
+    deps = ["@maven//:org_apache_logging_log4j_log4j_core"],
+)
+
+# JMH benchmark generator (ksqldb-benchmark, jmh-generator-annprocess).
+java_plugin(
+    name = "jmh_processor",
+    processor_class = "org.openjdk.jmh.generators.BenchmarkProcessor",
+    visibility = ["//visibility:public"],
+    deps = ["@maven//:org_openjdk_jmh_jmh_generator_annprocess"],
+)

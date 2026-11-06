@@ -50,16 +50,21 @@ import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
 import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.errors.TimeoutException;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.CumulativeCount;
 
 /**
  * A {@code StatementExecutor} that encapsulates a command queue and will
@@ -80,6 +85,7 @@ public class DistributingExecutor {
   private final Errors errorHandler;
   private final Supplier<String> commandRunnerWarning;
   private final RateLimiter rateLimiter;
+  private final Sensor rateLimitRejectSensor;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public DistributingExecutor(
@@ -90,7 +96,9 @@ public class DistributingExecutor {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final ValidatedCommandFactory validatedCommandFactory,
       final Errors errorHandler,
-      final Supplier<String> commandRunnerWarning
+      final Supplier<String> commandRunnerWarning,
+      final Metrics metrics,
+      final Map<String, String> metricsTags
   ) {
     this.commandQueue = commandQueue;
     this.distributedCmdResponseTimeout =
@@ -111,6 +119,18 @@ public class DistributingExecutor {
     final KsqlRestConfig restConfig = new KsqlRestConfig(ksqlConfig.originals());
     this.rateLimiter = 
       RateLimiter.create(restConfig.getDouble(KsqlRestConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG));
+    // sensor() returns the existing sensor and add() is a no-op for an already registered
+    // metric, so building a second executor on the same Metrics (configure() re-run) is safe.
+    this.rateLimitRejectSensor = metrics.sensor("command-topic-rate-limit-rejects");
+    rateLimitRejectSensor.add(
+        new MetricName(
+            "command-topic-rate-limit-reject-count",
+            ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "limits",
+            "The number of statements rejected by the command topic rate limiter",
+            Objects.requireNonNull(metricsTags, "metricsTags")
+        ),
+        new CumulativeCount()
+    );
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -214,14 +234,26 @@ public class DistributingExecutor {
 
     checkAuthorization(injected, securityContext, executionContext);
 
+    // Check the rate limit before creating a producer: a rejected statement must not leave an
+    // initialised transactional producer (and its network thread) behind.
+    if (!rateLimiter.tryAcquire(1, TimeUnit.SECONDS)) {
+      rateLimitRejectSensor.record();
+      throw new KsqlRestException(
+        Errors.tooManyRequests(
+          "DDL/DML rate is crossing the configured rate limit of statements/second"
+        ));
+    }
+
     final Producer<CommandId, Command> transactionalProducer =
         commandQueue.createTransactionalProducer();
 
     try {
       transactionalProducer.initTransactions();
     } catch (final TimeoutException e) {
+      closeAfterFailedInit(transactionalProducer, e);
       throw new KsqlServerException(errorHandler.transactionInitTimeoutErrorMessage(e), e);
     } catch (final Exception e) {
+      closeAfterFailedInit(transactionalProducer, e);
       throw new KsqlStatementException(
           "Could not write the statement into the command topic: " + e.getMessage(),
           String.format(
@@ -231,13 +263,6 @@ public class DistributingExecutor {
           original.getMaskedStatementText(),
           KsqlStatementException.Problem.OTHER,
           e);
-    }
-
-    if (!rateLimiter.tryAcquire(1, TimeUnit.SECONDS)) {
-      throw new KsqlRestException(
-        Errors.tooManyRequests(
-          "DDL/DML rate is crossing the configured rate limit of statements/second"
-        ));
     }
 
     CommandId commandId = null;
@@ -300,6 +325,21 @@ public class DistributingExecutor {
       );
     } finally {
       transactionalProducer.close();
+    }
+  }
+
+  /**
+   * Closes a producer whose initTransactions() failed. Zero timeout: there is nothing to flush,
+   * and a graceful close could wait on the still-pending InitProducerId request.
+   */
+  private static void closeAfterFailedInit(
+      final Producer<CommandId, Command> producer,
+      final Exception cause
+  ) {
+    try {
+      producer.close(Duration.ZERO);
+    } catch (final Exception closeError) {
+      cause.addSuppressed(closeError);
     }
   }
 

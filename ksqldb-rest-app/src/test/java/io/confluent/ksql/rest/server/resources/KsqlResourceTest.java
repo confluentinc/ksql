@@ -455,7 +455,9 @@ public class KsqlResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         configOverrideValidator,
-        commandRunnerWarning
+        commandRunnerWarning,
+        new Metrics(),
+        Collections.emptyMap()
     );
 
     // When:
@@ -487,7 +489,9 @@ public class KsqlResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         configOverrideValidator,
-        commandRunnerWarning
+        commandRunnerWarning,
+        new Metrics(),
+        Collections.emptyMap()
     );
 
     // When:
@@ -2611,7 +2615,9 @@ public class KsqlResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         configOverrideValidator,
-        commandRunnerWarning
+        commandRunnerWarning,
+        new Metrics(),
+        Collections.emptyMap()
     );
 
     ksqlResource.configure(ksqlConfig);

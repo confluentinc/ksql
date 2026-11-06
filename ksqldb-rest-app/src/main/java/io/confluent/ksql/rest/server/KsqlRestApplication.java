@@ -970,7 +970,9 @@ public final class KsqlRestApplication implements Executable {
         versionChecker::updateLastRequestTime,
         authorizationValidator,
         errorHandler,
-        configOverrideValidator
+        configOverrideValidator,
+        metricCollectors.getMetrics(),
+        metricsTags
     );
 
     final List<KsqlConfigurable> configurables = ImmutableList.of(

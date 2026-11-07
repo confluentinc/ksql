@@ -19,7 +19,8 @@ global_job_config:
     commands:
       - checkout
       - nproc; free -g
-      - t() { local s=$SECONDS; "${@:2}"; local rc=$?; echo "TIMING $1 rc=$rc $((SECONDS - s))s" | tee -a timing.txt; return 0; }
+      # The agent's pre-job hook leaves `set -e` on, so record the exit code with `|| rc=$?`.
+      - t() { local s=$SECONDS rc=0; "${@:2}" || rc=$?; echo "TIMING $1 rc=$rc $((SECONDS - s))s" | tee -a ~/timing.txt; }
 
 blocks:
   # Warm the dependency caches once (all lanes are amd64), like CI's `cache-maven restore`. Not timed.
@@ -69,7 +70,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-bazel-cold-amd64-1.txt
+            - artifact push workflow ~/timing.txt --destination timing-bazel-cold-amd64-1.txt || true
 
   - name: Bazel warm amd64-1
     dependencies: ["Bazel cold amd64-1"]
@@ -93,7 +94,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-bazel-warm-amd64-1.txt
+            - artifact push workflow ~/timing.txt --destination timing-bazel-warm-amd64-1.txt || true
 
   # ksql CI's Test job command; -fae + failure.ignore so one flaky test can't cut the timing short.
   - name: Maven amd64-1
@@ -113,7 +114,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-maven-amd64-1.txt
+            - artifact push workflow ~/timing.txt --destination timing-maven-amd64-1.txt || true
 
   # amd64-2: Bazel on a fresh agent (deps warm, no build cache), then a fresh agent restoring that disk cache.
   - name: Bazel cold amd64-2
@@ -139,7 +140,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-bazel-cold-amd64-2.txt
+            - artifact push workflow ~/timing.txt --destination timing-bazel-cold-amd64-2.txt || true
 
   - name: Bazel warm amd64-2
     dependencies: ["Bazel cold amd64-2"]
@@ -163,7 +164,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-bazel-warm-amd64-2.txt
+            - artifact push workflow ~/timing.txt --destination timing-bazel-warm-amd64-2.txt || true
 
   # ksql CI's Test job command; -fae + failure.ignore so one flaky test can't cut the timing short.
   - name: Maven amd64-2
@@ -183,7 +184,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-maven-amd64-2.txt
+            - artifact push workflow ~/timing.txt --destination timing-maven-amd64-2.txt || true
 
   # amd64-3: Bazel on a fresh agent (deps warm, no build cache), then a fresh agent restoring that disk cache.
   - name: Bazel cold amd64-3
@@ -209,7 +210,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-bazel-cold-amd64-3.txt
+            - artifact push workflow ~/timing.txt --destination timing-bazel-cold-amd64-3.txt || true
 
   - name: Bazel warm amd64-3
     dependencies: ["Bazel cold amd64-3"]
@@ -233,7 +234,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-bazel-warm-amd64-3.txt
+            - artifact push workflow ~/timing.txt --destination timing-bazel-warm-amd64-3.txt || true
 
   # ksql CI's Test job command; -fae + failure.ignore so one flaky test can't cut the timing short.
   - name: Maven amd64-3
@@ -253,7 +254,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-maven-amd64-3.txt
+            - artifact push workflow ~/timing.txt --destination timing-maven-amd64-3.txt || true
 
   # amd64-4: Bazel on a fresh agent (deps warm, no build cache), then a fresh agent restoring that disk cache.
   - name: Bazel cold amd64-4
@@ -279,7 +280,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-bazel-cold-amd64-4.txt
+            - artifact push workflow ~/timing.txt --destination timing-bazel-cold-amd64-4.txt || true
 
   - name: Bazel warm amd64-4
     dependencies: ["Bazel cold amd64-4"]
@@ -303,7 +304,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-bazel-warm-amd64-4.txt
+            - artifact push workflow ~/timing.txt --destination timing-bazel-warm-amd64-4.txt || true
 
   # ksql CI's Test job command; -fae + failure.ignore so one flaky test can't cut the timing short.
   - name: Maven amd64-4
@@ -323,7 +324,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-maven-amd64-4.txt
+            - artifact push workflow ~/timing.txt --destination timing-maven-amd64-4.txt || true
 
   # amd64-5: Bazel on a fresh agent (deps warm, no build cache), then a fresh agent restoring that disk cache.
   - name: Bazel cold amd64-5
@@ -349,7 +350,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-bazel-cold-amd64-5.txt
+            - artifact push workflow ~/timing.txt --destination timing-bazel-cold-amd64-5.txt || true
 
   - name: Bazel warm amd64-5
     dependencies: ["Bazel cold amd64-5"]
@@ -373,7 +374,7 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-bazel-warm-amd64-5.txt
+            - artifact push workflow ~/timing.txt --destination timing-bazel-warm-amd64-5.txt || true
 
   # ksql CI's Test job command; -fae + failure.ignore so one flaky test can't cut the timing short.
   - name: Maven amd64-5
@@ -393,4 +394,4 @@ blocks:
       epilogue:
         always:
           commands:
-            - artifact push workflow timing.txt --destination timing-maven-amd64-5.txt
+            - artifact push workflow ~/timing.txt --destination timing-maven-amd64-5.txt || true

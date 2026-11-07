@@ -1,0 +1,397 @@
+# DP-20611 experiment: ksql Maven vs Bazel CI wall times across agent sizes
+# (amd64-1..5 = 4/8/16/32/64 vCPU, 2 GiB per vCPU). Run manually
+# (workflows_run with this pipeline_file); not wired into the ServiceBot-managed
+# semaphore.yml. Remove before merge.
+version: v1.0
+name: timing-sweep
+agent:
+  machine:
+    type: s1-prod-ubuntu24-04-amd64-3
+
+execution_time_limit:
+  hours: 8
+
+global_job_config:
+  env_vars:
+    - name: BZL_FLAGS
+      value: "--remote_cache= --repository_cache=/home/semaphore/bazel-repo-cache --disk_cache=/home/semaphore/bazel-disk-cache"
+  prologue:
+    commands:
+      - checkout
+      - nproc; free -g
+      # The agent's pre-job hook leaves `set -e` on, so record the exit code with `|| rc=$?`.
+      - t() { local s=$SECONDS rc=0; "${@:2}" || rc=$?; echo "TIMING $1 rc=$rc $((SECONDS - s))s" | tee -a ~/timing.txt; }
+
+blocks:
+  # Warm the dependency caches once (all lanes are amd64), like CI's `cache-maven restore`. Not timed.
+  - name: Fetch
+    dependencies: []
+    task:
+      jobs:
+        - name: Fetch
+          commands:
+            - bazel run //:update_bazel_credential_helper $BZL_FLAGS
+            - bazel fetch //... $BZL_FLAGS
+            - cache store bazel-repo-$SEMAPHORE_WORKFLOW_ID /home/semaphore/bazel-repo-cache
+
+  - name: Warm m2
+    dependencies: []
+    task:
+      prologue:
+        commands:
+          - . set-cp-java-version
+      jobs:
+        - name: Warm m2
+          commands:
+            - mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress install -DskipTests
+            - cache store maven-m2-$SEMAPHORE_WORKFLOW_ID ~/.m2/repository
+
+  # amd64-1: Bazel on a fresh agent (deps warm, no build cache), then a fresh agent restoring that disk cache.
+  - name: Bazel cold amd64-1
+    dependencies: ["Fetch"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-1
+      prologue:
+        commands:
+          # Cap the server heap; size test parallelism by RAM (~3 GB per embedded-Kafka test JVM).
+          - echo 'startup --host_jvm_args=-Xmx2g' >> ~/.bazelrc
+          - MEM=$(free -g | awk '/Mem:/{print $2}'); J=$(( (MEM - 3) / 3 )); [ "$J" -gt "$(nproc)" ] && J=$(nproc); [ "$J" -lt 1 ] && J=1; export BZL_TEST_FLAGS="--local_test_jobs=$J"; echo "local_test_jobs=$J"
+          - cache restore bazel-repo-$SEMAPHORE_WORKFLOW_ID
+          - bazel run //:update_bazel_credential_helper $BZL_FLAGS
+      jobs:
+        - name: Bazel cold amd64-1
+          commands:
+            - t cold-build bazel build //... $BZL_FLAGS
+            - t cold-test bazel test //... $BZL_FLAGS $BZL_TEST_FLAGS
+            - t cold-noop-build bazel build //... $BZL_FLAGS
+            - cache store bazel-disk-$SEMAPHORE_WORKFLOW_ID-1 /home/semaphore/bazel-disk-cache
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-bazel-cold-amd64-1.txt || true
+
+  - name: Bazel warm amd64-1
+    dependencies: ["Bazel cold amd64-1"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-1
+      prologue:
+        commands:
+          # Cap the server heap; size test parallelism by RAM (~3 GB per embedded-Kafka test JVM).
+          - echo 'startup --host_jvm_args=-Xmx2g' >> ~/.bazelrc
+          - MEM=$(free -g | awk '/Mem:/{print $2}'); J=$(( (MEM - 3) / 3 )); [ "$J" -gt "$(nproc)" ] && J=$(nproc); [ "$J" -lt 1 ] && J=1; export BZL_TEST_FLAGS="--local_test_jobs=$J"; echo "local_test_jobs=$J"
+          - cache restore bazel-repo-$SEMAPHORE_WORKFLOW_ID
+          - bazel run //:update_bazel_credential_helper $BZL_FLAGS
+      jobs:
+        - name: Bazel warm amd64-1
+          commands:
+            - cache restore bazel-disk-$SEMAPHORE_WORKFLOW_ID-1
+            - t warm-build bazel build //... $BZL_FLAGS
+            - t warm-test bazel test //... $BZL_FLAGS $BZL_TEST_FLAGS
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-bazel-warm-amd64-1.txt || true
+
+  # ksql CI's Test job command; -fae + failure.ignore so one flaky test can't cut the timing short.
+  - name: Maven amd64-1
+    dependencies: ["Warm m2"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-1
+      prologue:
+        commands:
+          - . set-cp-java-version
+          - cache restore maven-m2-$SEMAPHORE_WORKFLOW_ID
+      jobs:
+        - name: Maven amd64-1
+          commands:
+            - t mvn-clean-install bash -c 'mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress -fae -Dmaven.test.failure.ignore=true clean install 2>&1 | tee mvn.log | grep -E "Tests run:.*Fail|Reactor Summary| SUCCESS \[| FAILURE \[| SKIPPED|BUILD|Total time"; exit ${PIPESTATUS[0]}'
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-maven-amd64-1.txt || true
+
+  # amd64-2: Bazel on a fresh agent (deps warm, no build cache), then a fresh agent restoring that disk cache.
+  - name: Bazel cold amd64-2
+    dependencies: ["Fetch"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-2
+      prologue:
+        commands:
+          # Cap the server heap; size test parallelism by RAM (~3 GB per embedded-Kafka test JVM).
+          - echo 'startup --host_jvm_args=-Xmx2g' >> ~/.bazelrc
+          - MEM=$(free -g | awk '/Mem:/{print $2}'); J=$(( (MEM - 3) / 3 )); [ "$J" -gt "$(nproc)" ] && J=$(nproc); [ "$J" -lt 1 ] && J=1; export BZL_TEST_FLAGS="--local_test_jobs=$J"; echo "local_test_jobs=$J"
+          - cache restore bazel-repo-$SEMAPHORE_WORKFLOW_ID
+          - bazel run //:update_bazel_credential_helper $BZL_FLAGS
+      jobs:
+        - name: Bazel cold amd64-2
+          commands:
+            - t cold-build bazel build //... $BZL_FLAGS
+            - t cold-test bazel test //... $BZL_FLAGS $BZL_TEST_FLAGS
+            - t cold-noop-build bazel build //... $BZL_FLAGS
+            - cache store bazel-disk-$SEMAPHORE_WORKFLOW_ID-2 /home/semaphore/bazel-disk-cache
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-bazel-cold-amd64-2.txt || true
+
+  - name: Bazel warm amd64-2
+    dependencies: ["Bazel cold amd64-2"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-2
+      prologue:
+        commands:
+          # Cap the server heap; size test parallelism by RAM (~3 GB per embedded-Kafka test JVM).
+          - echo 'startup --host_jvm_args=-Xmx2g' >> ~/.bazelrc
+          - MEM=$(free -g | awk '/Mem:/{print $2}'); J=$(( (MEM - 3) / 3 )); [ "$J" -gt "$(nproc)" ] && J=$(nproc); [ "$J" -lt 1 ] && J=1; export BZL_TEST_FLAGS="--local_test_jobs=$J"; echo "local_test_jobs=$J"
+          - cache restore bazel-repo-$SEMAPHORE_WORKFLOW_ID
+          - bazel run //:update_bazel_credential_helper $BZL_FLAGS
+      jobs:
+        - name: Bazel warm amd64-2
+          commands:
+            - cache restore bazel-disk-$SEMAPHORE_WORKFLOW_ID-2
+            - t warm-build bazel build //... $BZL_FLAGS
+            - t warm-test bazel test //... $BZL_FLAGS $BZL_TEST_FLAGS
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-bazel-warm-amd64-2.txt || true
+
+  # ksql CI's Test job command; -fae + failure.ignore so one flaky test can't cut the timing short.
+  - name: Maven amd64-2
+    dependencies: ["Warm m2"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-2
+      prologue:
+        commands:
+          - . set-cp-java-version
+          - cache restore maven-m2-$SEMAPHORE_WORKFLOW_ID
+      jobs:
+        - name: Maven amd64-2
+          commands:
+            - t mvn-clean-install bash -c 'mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress -fae -Dmaven.test.failure.ignore=true clean install 2>&1 | tee mvn.log | grep -E "Tests run:.*Fail|Reactor Summary| SUCCESS \[| FAILURE \[| SKIPPED|BUILD|Total time"; exit ${PIPESTATUS[0]}'
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-maven-amd64-2.txt || true
+
+  # amd64-3: Bazel on a fresh agent (deps warm, no build cache), then a fresh agent restoring that disk cache.
+  - name: Bazel cold amd64-3
+    dependencies: ["Fetch"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-3
+      prologue:
+        commands:
+          # Cap the server heap; size test parallelism by RAM (~3 GB per embedded-Kafka test JVM).
+          - echo 'startup --host_jvm_args=-Xmx2g' >> ~/.bazelrc
+          - MEM=$(free -g | awk '/Mem:/{print $2}'); J=$(( (MEM - 3) / 3 )); [ "$J" -gt "$(nproc)" ] && J=$(nproc); [ "$J" -lt 1 ] && J=1; export BZL_TEST_FLAGS="--local_test_jobs=$J"; echo "local_test_jobs=$J"
+          - cache restore bazel-repo-$SEMAPHORE_WORKFLOW_ID
+          - bazel run //:update_bazel_credential_helper $BZL_FLAGS
+      jobs:
+        - name: Bazel cold amd64-3
+          commands:
+            - t cold-build bazel build //... $BZL_FLAGS
+            - t cold-test bazel test //... $BZL_FLAGS $BZL_TEST_FLAGS
+            - t cold-noop-build bazel build //... $BZL_FLAGS
+            - cache store bazel-disk-$SEMAPHORE_WORKFLOW_ID-3 /home/semaphore/bazel-disk-cache
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-bazel-cold-amd64-3.txt || true
+
+  - name: Bazel warm amd64-3
+    dependencies: ["Bazel cold amd64-3"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-3
+      prologue:
+        commands:
+          # Cap the server heap; size test parallelism by RAM (~3 GB per embedded-Kafka test JVM).
+          - echo 'startup --host_jvm_args=-Xmx2g' >> ~/.bazelrc
+          - MEM=$(free -g | awk '/Mem:/{print $2}'); J=$(( (MEM - 3) / 3 )); [ "$J" -gt "$(nproc)" ] && J=$(nproc); [ "$J" -lt 1 ] && J=1; export BZL_TEST_FLAGS="--local_test_jobs=$J"; echo "local_test_jobs=$J"
+          - cache restore bazel-repo-$SEMAPHORE_WORKFLOW_ID
+          - bazel run //:update_bazel_credential_helper $BZL_FLAGS
+      jobs:
+        - name: Bazel warm amd64-3
+          commands:
+            - cache restore bazel-disk-$SEMAPHORE_WORKFLOW_ID-3
+            - t warm-build bazel build //... $BZL_FLAGS
+            - t warm-test bazel test //... $BZL_FLAGS $BZL_TEST_FLAGS
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-bazel-warm-amd64-3.txt || true
+
+  # ksql CI's Test job command; -fae + failure.ignore so one flaky test can't cut the timing short.
+  - name: Maven amd64-3
+    dependencies: ["Warm m2"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-3
+      prologue:
+        commands:
+          - . set-cp-java-version
+          - cache restore maven-m2-$SEMAPHORE_WORKFLOW_ID
+      jobs:
+        - name: Maven amd64-3
+          commands:
+            - t mvn-clean-install bash -c 'mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress -fae -Dmaven.test.failure.ignore=true clean install 2>&1 | tee mvn.log | grep -E "Tests run:.*Fail|Reactor Summary| SUCCESS \[| FAILURE \[| SKIPPED|BUILD|Total time"; exit ${PIPESTATUS[0]}'
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-maven-amd64-3.txt || true
+
+  # amd64-4: Bazel on a fresh agent (deps warm, no build cache), then a fresh agent restoring that disk cache.
+  - name: Bazel cold amd64-4
+    dependencies: ["Fetch"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-4
+      prologue:
+        commands:
+          # Cap the server heap; size test parallelism by RAM (~3 GB per embedded-Kafka test JVM).
+          - echo 'startup --host_jvm_args=-Xmx2g' >> ~/.bazelrc
+          - MEM=$(free -g | awk '/Mem:/{print $2}'); J=$(( (MEM - 3) / 3 )); [ "$J" -gt "$(nproc)" ] && J=$(nproc); [ "$J" -lt 1 ] && J=1; export BZL_TEST_FLAGS="--local_test_jobs=$J"; echo "local_test_jobs=$J"
+          - cache restore bazel-repo-$SEMAPHORE_WORKFLOW_ID
+          - bazel run //:update_bazel_credential_helper $BZL_FLAGS
+      jobs:
+        - name: Bazel cold amd64-4
+          commands:
+            - t cold-build bazel build //... $BZL_FLAGS
+            - t cold-test bazel test //... $BZL_FLAGS $BZL_TEST_FLAGS
+            - t cold-noop-build bazel build //... $BZL_FLAGS
+            - cache store bazel-disk-$SEMAPHORE_WORKFLOW_ID-4 /home/semaphore/bazel-disk-cache
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-bazel-cold-amd64-4.txt || true
+
+  - name: Bazel warm amd64-4
+    dependencies: ["Bazel cold amd64-4"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-4
+      prologue:
+        commands:
+          # Cap the server heap; size test parallelism by RAM (~3 GB per embedded-Kafka test JVM).
+          - echo 'startup --host_jvm_args=-Xmx2g' >> ~/.bazelrc
+          - MEM=$(free -g | awk '/Mem:/{print $2}'); J=$(( (MEM - 3) / 3 )); [ "$J" -gt "$(nproc)" ] && J=$(nproc); [ "$J" -lt 1 ] && J=1; export BZL_TEST_FLAGS="--local_test_jobs=$J"; echo "local_test_jobs=$J"
+          - cache restore bazel-repo-$SEMAPHORE_WORKFLOW_ID
+          - bazel run //:update_bazel_credential_helper $BZL_FLAGS
+      jobs:
+        - name: Bazel warm amd64-4
+          commands:
+            - cache restore bazel-disk-$SEMAPHORE_WORKFLOW_ID-4
+            - t warm-build bazel build //... $BZL_FLAGS
+            - t warm-test bazel test //... $BZL_FLAGS $BZL_TEST_FLAGS
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-bazel-warm-amd64-4.txt || true
+
+  # ksql CI's Test job command; -fae + failure.ignore so one flaky test can't cut the timing short.
+  - name: Maven amd64-4
+    dependencies: ["Warm m2"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-4
+      prologue:
+        commands:
+          - . set-cp-java-version
+          - cache restore maven-m2-$SEMAPHORE_WORKFLOW_ID
+      jobs:
+        - name: Maven amd64-4
+          commands:
+            - t mvn-clean-install bash -c 'mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress -fae -Dmaven.test.failure.ignore=true clean install 2>&1 | tee mvn.log | grep -E "Tests run:.*Fail|Reactor Summary| SUCCESS \[| FAILURE \[| SKIPPED|BUILD|Total time"; exit ${PIPESTATUS[0]}'
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-maven-amd64-4.txt || true
+
+  # amd64-5: Bazel on a fresh agent (deps warm, no build cache), then a fresh agent restoring that disk cache.
+  - name: Bazel cold amd64-5
+    dependencies: ["Fetch"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-5
+      prologue:
+        commands:
+          # Cap the server heap; size test parallelism by RAM (~3 GB per embedded-Kafka test JVM).
+          - echo 'startup --host_jvm_args=-Xmx2g' >> ~/.bazelrc
+          - MEM=$(free -g | awk '/Mem:/{print $2}'); J=$(( (MEM - 3) / 3 )); [ "$J" -gt "$(nproc)" ] && J=$(nproc); [ "$J" -lt 1 ] && J=1; export BZL_TEST_FLAGS="--local_test_jobs=$J"; echo "local_test_jobs=$J"
+          - cache restore bazel-repo-$SEMAPHORE_WORKFLOW_ID
+          - bazel run //:update_bazel_credential_helper $BZL_FLAGS
+      jobs:
+        - name: Bazel cold amd64-5
+          commands:
+            - t cold-build bazel build //... $BZL_FLAGS
+            - t cold-test bazel test //... $BZL_FLAGS $BZL_TEST_FLAGS
+            - t cold-noop-build bazel build //... $BZL_FLAGS
+            - cache store bazel-disk-$SEMAPHORE_WORKFLOW_ID-5 /home/semaphore/bazel-disk-cache
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-bazel-cold-amd64-5.txt || true
+
+  - name: Bazel warm amd64-5
+    dependencies: ["Bazel cold amd64-5"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-5
+      prologue:
+        commands:
+          # Cap the server heap; size test parallelism by RAM (~3 GB per embedded-Kafka test JVM).
+          - echo 'startup --host_jvm_args=-Xmx2g' >> ~/.bazelrc
+          - MEM=$(free -g | awk '/Mem:/{print $2}'); J=$(( (MEM - 3) / 3 )); [ "$J" -gt "$(nproc)" ] && J=$(nproc); [ "$J" -lt 1 ] && J=1; export BZL_TEST_FLAGS="--local_test_jobs=$J"; echo "local_test_jobs=$J"
+          - cache restore bazel-repo-$SEMAPHORE_WORKFLOW_ID
+          - bazel run //:update_bazel_credential_helper $BZL_FLAGS
+      jobs:
+        - name: Bazel warm amd64-5
+          commands:
+            - cache restore bazel-disk-$SEMAPHORE_WORKFLOW_ID-5
+            - t warm-build bazel build //... $BZL_FLAGS
+            - t warm-test bazel test //... $BZL_FLAGS $BZL_TEST_FLAGS
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-bazel-warm-amd64-5.txt || true
+
+  # ksql CI's Test job command; -fae + failure.ignore so one flaky test can't cut the timing short.
+  - name: Maven amd64-5
+    dependencies: ["Warm m2"]
+    task:
+      agent:
+        machine:
+          type: s1-prod-ubuntu24-04-amd64-5
+      prologue:
+        commands:
+          - . set-cp-java-version
+          - cache restore maven-m2-$SEMAPHORE_WORKFLOW_ID
+      jobs:
+        - name: Maven amd64-5
+          commands:
+            - t mvn-clean-install bash -c 'mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress -fae -Dmaven.test.failure.ignore=true clean install 2>&1 | tee mvn.log | grep -E "Tests run:.*Fail|Reactor Summary| SUCCESS \[| FAILURE \[| SKIPPED|BUILD|Total time"; exit ${PIPESTATUS[0]}'
+      epilogue:
+        always:
+          commands:
+            - artifact push workflow ~/timing.txt --destination timing-maven-amd64-5.txt || true

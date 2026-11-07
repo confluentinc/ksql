@@ -139,6 +139,20 @@ For more general questions about the Confluent Platform please post in the [Conf
 - Learn how to work with the ksqlDB source code, including building and testing ksqlDB, by reading our
   [Development and Contribution guidelines](CONTRIBUTING.md).
 
+## Building with Bazel
+
+This repository is migrating to Bazel as an additive dual-build (DP-20611).
+**Maven remains the primary build** during the dual-build period, so the Maven
+instructions in CONTRIBUTING.md are still the supported path. To build and test
+the jar modules with Bazel:
+
+    $ bazel build //...
+    $ bazel test //...
+
+Packaging modules (`ksqldb-package`, `ksqldb-docker`, `ksqldb-etc`,
+`ksqldb-console-scripts`, the `ksqldb-udf-quickstart` archetype) are built by
+Maven only.
+
 
 # License
 

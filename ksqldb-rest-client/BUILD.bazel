@@ -1,0 +1,82 @@
+load("//tools-bazel:ksql_defs.bzl", "KSQL_DUMMY_LICENSE_FIRST", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS", "classes_dir", "classes_dir_test_args")
+load("//tools-bazel:library_wrappers.bzl", "java_export", "java_library", "jvm_junit_test_classes")
+
+java_export(
+    name = "ksqldb-rest-client",
+    srcs = glob(["src/main/java/**/*.java"]),
+    # Maven also publishes the test-jar (maven-jar-plugin test-jar goal).
+    classifier_artifacts = {"tests": ":ksqldb-rest-client-tests"},
+    maven_coordinates = "io.confluent.ksql:ksqldb-rest-client:$(maven_version)",
+    visibility = ["//visibility:public"],
+    deps = KSQL_PARENT_DEPS + [
+        "//ksqldb-common",
+        "//ksqldb-metastore:ksqldb-metastore-project",
+        "//ksqldb-parser",
+        "//ksqldb-rest-model",
+        "//ksqldb-udf:ksqldb-udf-project",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_fasterxml_jackson_datatype_jackson_datatype_jdk8",
+        "@maven//:com_google_guava_guava",
+        "@maven//:io_netty_netty_codec_http",
+        "@maven//:io_vertx_vertx_codegen",
+        "@maven//:io_vertx_vertx_core",
+        "@maven//:org_apache_kafka_kafka_clients",
+        "@maven//:org_reactivestreams_reactive_streams",
+    ],
+)
+
+# Stand-in for the Maven `tests` test-jar: the whole src/test tree,
+# compiled once and shared by this module's tests and downstream modules.
+java_library(
+    name = "ksqldb-rest-client-tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = KSQL_PARENT_DEPS + [
+        ":ksqldb-rest-client",
+        "//ksqldb-common:ksqldb-common-project",
+        "//ksqldb-execution:ksqldb-execution-project",
+        "//ksqldb-parser:ksqldb-parser-project",
+        "//ksqldb-rest-model:ksqldb-rest-model-project",
+        "//ksqldb-test-util",
+        "//ksqldb-udf:ksqldb-udf-project",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_google_guava_guava",
+        "@maven//:io_netty_netty_codec_http",
+        "@maven//:io_vertx_vertx_core",
+        "@maven//:io_vertx_vertx_web",
+        "@maven//:junit_junit",
+        "@maven//:org_apache_kafka_connect_api",
+        "@maven//:org_apache_kafka_kafka_clients",
+        "@maven//:org_apache_kafka_kafka_streams",
+        "@maven//:org_hamcrest_hamcrest",
+        "@maven//:org_mockito_mockito_core",
+        "@maven//:org_reactivestreams_reactive_streams",
+    ],
+)
+
+# Exploded main classes for ClassFinder-based tests (see ksql_defs.bzl).
+classes_dir(
+    name = "ksqldb-rest-client-classes",
+    lib = ":ksqldb-rest-client-lib",
+)
+
+jvm_junit_test_classes(
+    name = "ksqldb-rest-client-test-suite",
+    classpath_first = KSQL_DUMMY_LICENSE_FIRST,
+    data = KSQL_TEST_DATA,
+    jvm_flags = KSQL_TEST_JVM_FLAGS,
+    per_test_args = {
+        "src/test/java/io/confluent/ksql/rest/client/ImmutabilityTest.java": classes_dir_test_args("ksqldb-rest-client"),
+    },
+    test_lib = ":ksqldb-rest-client-tests",
+    test_srcs = [
+        "src/test/java/io/confluent/ksql/rest/client/ImmutabilityTest.java",
+        "src/test/java/io/confluent/ksql/rest/client/KsqlClientTest.java",
+        "src/test/java/io/confluent/ksql/rest/client/KsqlClientUtilTest.java",
+        "src/test/java/io/confluent/ksql/rest/client/KsqlRestClientTest.java",
+        "src/test/java/io/confluent/ksql/rest/client/KsqlTargetTest.java",
+        "src/test/java/io/confluent/ksql/rest/client/KsqlTargetUtilTest.java",
+        "src/test/java/io/confluent/ksql/rest/entity/StreamedRowTest.java",
+    ],
+    runtime_deps = KSQL_TEST_RUNTIME_DEPS,
+)

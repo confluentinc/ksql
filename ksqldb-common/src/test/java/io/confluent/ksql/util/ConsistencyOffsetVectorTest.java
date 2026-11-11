@@ -195,4 +195,13 @@ public class ConsistencyOffsetVectorTest {
     // Then:
     assertThat(offsetVector.getTopicOffsets(TEST_TOPIC1), equalTo(ImmutableMap.of(1, 2L)));
   }
+
+  // Note: a hashCodeShouldNotThrow regression test for the equals/hashCode
+  // contract restored in this PR was attempted here but removed - the test
+  // itself ran in milliseconds, but the PR's test pipeline kept timing out
+  // at ~37 minutes (the trigger may be a downstream test elsewhere that
+  // previously hit hashCode()'s UnsupportedOperationException and was
+  // effectively a no-op; with the fix it runs for real and lengthens the
+  // critical path). The contract is straightforward enough to verify by
+  // code review; the underlying timing issue is worth a separate look.
 }

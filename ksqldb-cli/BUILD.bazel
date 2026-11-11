@@ -1,0 +1,136 @@
+load("//tools-bazel:ksql_defs.bzl", "KSQL_DUMMY_LICENSE_FIRST", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS", "classes_dir", "classes_dir_test_args", "module_cwd_files")
+load("//tools-bazel:library_wrappers.bzl", "java_export", "java_library", "jvm_junit_test_classes")
+
+java_export(
+    name = "ksqldb-cli",
+    srcs = glob(["src/main/java/**/*.java"]),
+    # Maven also publishes the test-jar (maven-jar-plugin test-jar goal).
+    classifier_artifacts = {"tests": ":ksqldb-cli-tests"},
+    maven_coordinates = "io.confluent.ksql:ksqldb-cli:$(maven_version)",
+    plugins = [
+        "//third_party:log4j_graalvm_processor",
+        "//third_party:log4j_plugin_processor",
+    ],
+    resource_strip_prefix = "ksqldb-cli/src/main/resources",
+    resources = glob(["src/main/resources/**"]),
+    visibility = ["//visibility:public"],
+    deps = KSQL_PARENT_DEPS + [
+        "//ksqldb-common:ksqldb-common-project",
+        "//ksqldb-parser:ksqldb-parser-project",
+        "//ksqldb-rest-client",
+        "//ksqldb-rest-model:ksqldb-rest-model-project",
+        "//ksqldb-serde:ksqldb-serde-project",
+        "//ksqldb-version-metrics-client",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_github_rvesse_airline",
+        "@maven//:com_google_code_findbugs_jsr305",
+        "@maven//:com_google_guava_guava",
+        "@maven//:io_netty_netty_codec_http",
+        "@maven//:io_vertx_vertx_core",
+        "@maven//:javax_inject_javax_inject",
+        "@maven//:net_java_dev_jna_jna",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:org_apache_kafka_kafka_clients",
+        "@maven//:org_jline_jline",
+        "@maven//:org_reactivestreams_reactive_streams",
+    ],
+)
+
+# Stand-in for the Maven `tests` test-jar: the whole src/test tree,
+# compiled once and shared by this module's tests and downstream modules.
+java_library(
+    name = "ksqldb-cli-tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    resource_strip_prefix = "ksqldb-cli/src/test/resources",
+    resources = glob(["src/test/resources/**"]),
+    visibility = ["//visibility:public"],
+    deps = KSQL_PARENT_DEPS + [
+        ":ksqldb-cli",
+        "//ksqldb-common:ksqldb-common-project",
+        "//ksqldb-engine:ksqldb-engine-tests",
+        "//ksqldb-execution:ksqldb-execution-project",
+        "//ksqldb-metastore:ksqldb-metastore-project",
+        "//ksqldb-rest-app",
+        "//ksqldb-rest-app:ksqldb-rest-app-tests",
+        "//ksqldb-rest-client:ksqldb-rest-client-project",
+        "//ksqldb-rest-model:ksqldb-rest-model-project",
+        "//ksqldb-serde:ksqldb-serde-project",
+        "//ksqldb-test-util",
+        "//ksqldb-udf:ksqldb-udf-project",
+        "@maven//:com_approvaltests_approvaltests",
+        "@maven//:com_google_guava_guava",
+        "@maven//:io_netty_netty_codec_http",
+        "@maven//:io_vertx_vertx_core",
+        "@maven//:junit_junit",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:org_apache_kafka_connect_api",
+        "@maven//:org_apache_kafka_kafka_clients",
+        "@maven//:org_apache_kafka_kafka_clients_test",
+        "@maven//:org_apache_kafka_kafka_raft",
+        "@maven//:org_apache_kafka_kafka_streams",
+        "@maven//:org_easymock_easymock",
+        "@maven//:org_eclipse_jetty_jetty_security",
+        "@maven//:org_hamcrest_hamcrest_all",
+        "@maven//:org_jline_jline",
+        "@maven//:org_mockito_mockito_core",
+    ],
+)
+
+# Exploded main classes for ClassFinder-based tests (see ksql_defs.bzl).
+classes_dir(
+    name = "ksqldb-cli-classes",
+    lib = ":ksqldb-cli-lib",
+)
+
+# Module files at module-relative paths (surefire cwd = module dir), incl.
+# ApprovalTests' *.approved.txt, which it locates next to the test source.
+module_cwd_files(
+    name = "ksqldb-cli-cwd",
+    srcs = glob([
+        "src/test/resources/**",
+        "src/test/java/**/*.approved.*",
+        "src/test/java/**/ConsoleTest.java",
+    ]),
+)
+
+jvm_junit_test_classes(
+    name = "ksqldb-cli-test-suite",
+    classpath_first = KSQL_DUMMY_LICENSE_FIRST,
+    data = KSQL_TEST_DATA + [":ksqldb-cli-cwd"],
+    integration_srcs = [
+        "src/test/java/io/confluent/ksql/cli/BasicAuthFunctionalTest.java",
+        "src/test/java/io/confluent/ksql/cli/CliTest.java",
+        "src/test/java/io/confluent/ksql/cli/SslClientAuthFunctionalTest.java",
+        "src/test/java/io/confluent/ksql/cli/SslFunctionalTest.java",
+    ],
+    jvm_flags = KSQL_TEST_JVM_FLAGS,
+    per_test_args = {
+        "src/test/java/io/confluent/ksql/cli/ImmutabilityTest.java": classes_dir_test_args("ksqldb-cli"),
+    },
+    test_lib = ":ksqldb-cli-tests",
+    test_srcs = [
+        "src/test/java/io/confluent/ksql/KsqlTest.java",
+        "src/test/java/io/confluent/ksql/cli/BasicAuthFunctionalTest.java",
+        "src/test/java/io/confluent/ksql/cli/CliTest.java",
+        "src/test/java/io/confluent/ksql/cli/ImmutabilityTest.java",
+        "src/test/java/io/confluent/ksql/cli/SslClientAuthFunctionalTest.java",
+        "src/test/java/io/confluent/ksql/cli/SslFunctionalTest.java",
+        "src/test/java/io/confluent/ksql/cli/commands/OptionsTest.java",
+        "src/test/java/io/confluent/ksql/cli/console/CommentStripperTest.java",
+        "src/test/java/io/confluent/ksql/cli/console/ConsoleTest.java",
+        "src/test/java/io/confluent/ksql/cli/console/JLineReaderTest.java",
+        "src/test/java/io/confluent/ksql/cli/console/JLineTerminalTest.java",
+        "src/test/java/io/confluent/ksql/cli/console/KsqlLineParserTest.java",
+        "src/test/java/io/confluent/ksql/cli/console/OutputFormatTest.java",
+        "src/test/java/io/confluent/ksql/cli/console/TrimmingParserTest.java",
+        "src/test/java/io/confluent/ksql/cli/console/UnclosedQuoteCheckerTest.java",
+        "src/test/java/io/confluent/ksql/cli/console/cmd/RemoteServerSpecificCommandTest.java",
+        "src/test/java/io/confluent/ksql/cli/console/cmd/RequestPipeliningCommandTest.java",
+        "src/test/java/io/confluent/ksql/cli/console/cmd/RunScriptTest.java",
+        "src/test/java/io/confluent/ksql/cli/console/table/builder/PropertiesListTableBuilderTest.java",
+        "src/test/java/io/confluent/ksql/cli/console/table/builder/QueriesTableBuilderTest.java",
+        "src/test/java/io/confluent/ksql/util/CmdLineUtilTest.java",
+        "src/test/java/io/confluent/ksql/util/TabularRowTest.java",
+    ],
+    runtime_deps = KSQL_TEST_RUNTIME_DEPS,
+)

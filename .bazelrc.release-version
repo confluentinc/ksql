@@ -1,0 +1,5 @@
+# Local placeholder for the CP nano-version so $(maven_version) resolves for
+# local publish/parity builds. In CI this file is (re)written by
+# `ci-tools ci-update-version` and the value is passed via --define. Read from
+# the top-level pom.xml <version>.
+common --define maven_version=8.5.0-0

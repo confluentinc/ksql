@@ -40,6 +40,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.errors.LogAndFailExceptionHandler;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -57,7 +58,7 @@ public class KsqlConfigTest {
   @Test
   public void shouldSetLogAndContinueExceptionHandlerByDefault() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
     assertThat(result, equalTo(LogMetricAndContinueExceptionHandler.class));
   }
 
@@ -71,7 +72,7 @@ public class KsqlConfigTest {
   @Test
   public void shouldSetLogAndContinueExceptionHandlerWhenFailOnDeserializationErrorFalse() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, false));
-    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
     assertThat(result, equalTo(LogMetricAndContinueExceptionHandler.class));
   }
 
@@ -84,7 +85,7 @@ public class KsqlConfigTest {
   @Test
   public void shouldNotSetDeserializationExceptionHandlerWhenFailOnDeserializationErrorTrue() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, true));
-    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
     assertThat(result, nullValue());
   }
 
@@ -93,7 +94,7 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfig =
         new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_PRODUCTION_ERROR_CONFIG, false));
     final Object result = ksqlConfig.getKsqlStreamConfigProps()
-        .get(StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
+        .get(StreamsConfig.PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
     assertThat(result, equalTo(LogAndContinueProductionExceptionHandler.class));
   }
 
@@ -102,7 +103,7 @@ public class KsqlConfigTest {
     final KsqlConfig ksqlConfig =
         new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_PRODUCTION_ERROR_CONFIG, true));
     final Object result = ksqlConfig.getKsqlStreamConfigProps()
-        .get(StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
+        .get(StreamsConfig.PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
     assertThat(result, equalTo(LogAndFailProductionExceptionHandler.class));
   }
 
@@ -110,7 +111,7 @@ public class KsqlConfigTest {
   public void shouldFailOnProductionErrorByDefault() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
     final Object result = ksqlConfig.getKsqlStreamConfigProps()
-        .get(StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
+        .get(StreamsConfig.PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG);
     assertThat(result, equalTo(LogAndFailProductionExceptionHandler.class));
   }
 
@@ -240,23 +241,65 @@ public class KsqlConfigTest {
   @Test
   public void shouldSetStreamsConfigProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(
-        Collections.singletonMap(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "128"));
+        Collections.singletonMap(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, "128"));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(
-        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
+        StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG);
     assertThat(result, equalTo(128L));
   }
 
   @Test
   public void shouldSetPrefixedStreamsConfigProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
-        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "128"));
+        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, "128"));
 
     assertThat(ksqlConfig.getKsqlStreamConfigProps().
-        get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG), equalTo(128L));
+        get(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG), equalTo(128L));
 
     assertThat(ksqlConfig.getKsqlStreamConfigProps().
-            get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG),
+            get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG),
         is(nullValue()));
+  }
+
+  @Test
+  @SuppressWarnings("deprecation")
+  public void shouldCarryDeprecatedStreamsConfigOverToReplacement() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "128",
+        StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
+        LogAndFailExceptionHandler.class,
+        StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG,
+        LogAndContinueProductionExceptionHandler.class));
+
+    final Map<String, Object> props = ksqlConfig.getKsqlStreamConfigProps();
+    assertThat(props.get(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG), equalTo(128L));
+    assertThat(props.get(StreamsConfig.DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG),
+        equalTo(LogAndFailExceptionHandler.class));
+    assertThat(props.get(StreamsConfig.PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG),
+        equalTo(LogAndContinueProductionExceptionHandler.class));
+  }
+
+  @Test
+  @SuppressWarnings("deprecation")
+  public void shouldPreferReplacementOverDeprecatedStreamsConfig() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "128",
+        StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, "256"));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG), equalTo(256L));
+  }
+
+  @Test
+  @SuppressWarnings("deprecation")
+  public void shouldCarryDeprecatedStreamsConfigOverrideOverToReplacement() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, "256"));
+
+    final KsqlConfig cloned = ksqlConfig.cloneWithPropertyOverwrite(ImmutableMap.of(
+        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, "0"));
+
+    assertThat(cloned.getKsqlStreamConfigProps()
+        .get(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG), equalTo(0L));
   }
 
   @Test

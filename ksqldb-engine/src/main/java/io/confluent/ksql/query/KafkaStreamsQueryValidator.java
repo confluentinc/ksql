@@ -80,13 +80,13 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
     if (!config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
       usedByRunning = running.stream()
           .mapToLong(r -> new StreamsConfig(r.getStreamsProperties())
-              .getLong(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG))
+              .getLong(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG))
           .sum();
     } else {
       usedByRunning = running.stream()
           .filter(t -> !(t instanceof BinPackedPersistentQueryMetadataImpl))
           .mapToLong(r -> new StreamsConfig(r.getStreamsProperties())
-              .getLong(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG))
+              .getLong(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG))
           .sum();
       final Set<String> runtimes = new HashSet<>();
       long cacheSizeBytesPerRuntime = -1L;
@@ -94,20 +94,20 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
         if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
           if (cacheSizeBytesPerRuntime == -1L) {
             cacheSizeBytesPerRuntime = (long) queryMetadata.getStreamsProperties()
-                .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
+                .get(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG);
           }
           if (!runtimes.contains(queryMetadata.getQueryApplicationId())) {
             runtimes.add(queryMetadata.getQueryApplicationId());
             usedByRunning += (long) queryMetadata.getStreamsProperties()
-                .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
+                .get(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG);
           } else {
             if (cacheSizeBytesPerRuntime == (long) queryMetadata.getStreamsProperties()
-                .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG)) {
+                .get(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG)) {
               LOG.warn("Inconsistent "
-                  + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG
+                  + StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG
                   + " in shared runtimes {} and {}", cacheSizeBytesPerRuntime,
                     queryMetadata.getStreamsProperties()
-                      .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG));
+                      .get(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG));
             }
           }
         }
@@ -115,7 +115,7 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
     }
     if (configured + usedByRunning > limit) {
       throw new KsqlException(String.format(
-          "Configured cache usage (cache.max.bytes.buffering=%d) would put usage over the "
+          "Configured cache usage (statestore.cache.max.bytes=%d) would put usage over the "
               + "configured limit (%d). Current usage is %d",
           configured, limit, usedByRunning
       ));
@@ -123,7 +123,7 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
   }
 
   private long getCacheMaxBytesBuffering(final SessionConfig config) {
-    return getDummyStreamsConfig(config).getLong(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
+    return getDummyStreamsConfig(config).getLong(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG);
   }
 
   private StreamsConfig getDummyStreamsConfig(final SessionConfig config) {

@@ -40,7 +40,7 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
   @Override
   public void handle(final RoutingContext routingContext) {
     final Optional<CloseQueryArgs> closeQueryArgs = ServerUtils
-        .deserialiseObject(routingContext.getBody(), routingContext, CloseQueryArgs.class);
+        .deserialiseObject(routingContext.body().buffer(), routingContext, CloseQueryArgs.class);
     if (!closeQueryArgs.isPresent()) {
       return;
     }

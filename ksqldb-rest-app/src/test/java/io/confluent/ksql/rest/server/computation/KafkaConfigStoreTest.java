@@ -142,7 +142,8 @@ public class KafkaConfigStoreTest {
           new ConsumerRecord<>(TOPIC_NAME, 0, start + i, key, values[i])
       );
     }
-    log.add(new ConsumerRecords<>(Collections.singletonMap(topicPartition, records)));
+    log.add(new ConsumerRecords<>(Collections.singletonMap(topicPartition, records),
+        Collections.emptyMap()));
   }
 
   private void addPollResult(
@@ -174,7 +175,7 @@ public class KafkaConfigStoreTest {
             start,
             keySerializer.serialize("", new StringKey(key1)),
             value1)
-    ))));
+    )), Collections.emptyMap()));
     log.add(new ConsumerRecords<>(Collections.singletonMap(
         topicPartition,
         Collections.singletonList(
@@ -184,7 +185,7 @@ public class KafkaConfigStoreTest {
                 start + 1,
                 keySerializer.serialize("", new StringKey(key2)),
                 value2)
-    ))));
+    )), Collections.emptyMap()));
   }
 
   private void expectRead(final KafkaConsumer<byte[], byte[]> consumer) {

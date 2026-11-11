@@ -47,7 +47,7 @@ public class TestStochasticTopper {
     @Test
     public void testGaussianDistribution() {
         for (int i = 0; i < NUM_ITERATIONS; i++) {
-            vs.offer(new Integer((int) Math.round((random.nextGaussian() * NUM_ELEMENTS))));
+            vs.offer(Integer.valueOf((int) Math.round((random.nextGaussian() * NUM_ELEMENTS))));
         }
 
         List<Integer> top = vs.peek(5);

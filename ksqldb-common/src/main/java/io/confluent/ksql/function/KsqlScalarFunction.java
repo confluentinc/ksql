@@ -83,7 +83,7 @@ public final class KsqlScalarFunction extends KsqlFunction {
         // findbugs was complaining about a dead store so I inlined this
         ksqlConfig -> {
           try {
-            return kudfClass.newInstance();
+            return kudfClass.getDeclaredConstructor().newInstance();
           } catch (final Exception e) {
             throw new KsqlException("Failed to create instance of kudfClass "
                 + kudfClass + " for function " + functionName, e);

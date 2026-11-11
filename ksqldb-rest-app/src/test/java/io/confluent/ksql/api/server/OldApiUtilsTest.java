@@ -34,6 +34,7 @@ import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.SocketAddress;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -54,6 +55,8 @@ public class OldApiUtilsTest {
   private HttpServerRequest request;
   @Mock
   private RoutingContext routingContext;
+  @Mock
+  private RequestBody requestBody;
 
   @Before
   public void setUp() {
@@ -74,7 +77,8 @@ public class OldApiUtilsTest {
         + "    \"table.whitelist\"='users',\n"
         + "    \"key\"='username');";
     final KsqlRequest req = new KsqlRequest(query, ImmutableMap.of(), ImmutableMap.of(), 1L);
-    when(routingContext.getBody()).thenReturn(ServerUtils.serializeObject(req));
+    when(routingContext.body()).thenReturn(requestBody);
+    when(requestBody.buffer()).thenReturn(ServerUtils.serializeObject(req));
 
     // when, Then
     final String expected = "CREATE SOURCE CONNECTOR `test-connector` WITH "

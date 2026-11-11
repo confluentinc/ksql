@@ -21,9 +21,9 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.cfg.JsonNodeFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -67,7 +67,7 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(word -> false);
   private static final ObjectMapper MAPPER = new ObjectMapper()
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true))
+      .configure(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES, false)
       .registerModule(new SimpleModule().addSerializer(java.sql.Time.class, new DateSerializer()));
 
   private static final Schema STRING_ARRAY = SchemaBuilder
@@ -249,7 +249,7 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
 
     final ObjectNode map = (ObjectNode) context.val;
     final Map<String, Object> ksqlMap = new HashMap<>(map.size());
-    for (final Iterator<Entry<String, JsonNode>> it = map.fields(); it.hasNext(); ) {
+    for (final Iterator<Entry<String, JsonNode>> it = map.properties().iterator(); it.hasNext(); ) {
       final Entry<String, JsonNode> e = it.next();
 
       final String key = (String) enforceFieldType(
@@ -300,7 +300,7 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
 
   private static Map<String, JsonNode> upperCaseKeys(final ObjectNode map) {
     final Map<String, JsonNode> result = new HashMap<>(map.size());
-    for (final Iterator<Entry<String, JsonNode>> it = map.fields(); it.hasNext(); ) {
+    for (final Iterator<Entry<String, JsonNode>> it = map.properties().iterator(); it.hasNext(); ) {
       final Entry<String, JsonNode> entry = it.next();
       // what happens if we have two fields with the same name and different case?
       result.put(entry.getKey().toUpperCase(), entry.getValue());

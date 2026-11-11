@@ -23,6 +23,7 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.appender.RollingFileAppender;
 import org.apache.logging.log4j.core.appender.rolling.NoOpTriggeringPolicy;
+import org.apache.logging.log4j.core.config.Property;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
@@ -42,7 +43,7 @@ public class TimestampLogFileAppender extends AbstractAppender {
                                      final Filter filter,
                                      final boolean ignoreExceptions,
                                      final RollingFileAppender rollingFileAppender) {
-    super(name, filter, layout, ignoreExceptions);
+    super(name, filter, layout, ignoreExceptions, Property.EMPTY_ARRAY);
   }
 
   @PluginFactory
@@ -64,14 +65,14 @@ public class TimestampLogFileAppender extends AbstractAppender {
 
     rollingFileAppender = RollingFileAppender.newBuilder()
         .withFileName(updatedFileName)
-        .withName(name)
+        .setName(name)
         .withFilePattern(filePattern)
-        .withIgnoreExceptions(ignoreExceptions)
-        .withBufferedIo(true)
-        .withBufferSize(8192)
-        .withLayout(layout)
-        .withFilter(filter)
-        .withImmediateFlush(immediateFlush)
+        .setIgnoreExceptions(ignoreExceptions)
+        .setBufferedIo(true)
+        .setBufferSize(8192)
+        .setLayout(layout)
+        .setFilter(filter)
+        .setImmediateFlush(immediateFlush)
         .withPolicy(new NoOpTriggeringPolicy())
         .build();
 

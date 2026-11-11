@@ -332,7 +332,8 @@ public class KsqlEngineMetricsTest {
           "key", "1234567890", new RecordHeaders(), Optional.empty()));
     }
     records.put(new TopicPartition("foo", 1), recordList);
-    final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    final ConsumerRecords<Object, Object> consumerRecords =
+        new ConsumerRecords<>(records, ImmutableMap.of());
     collector1.onConsume(consumerRecords);
   }
 

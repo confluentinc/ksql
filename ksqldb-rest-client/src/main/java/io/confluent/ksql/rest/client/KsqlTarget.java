@@ -393,7 +393,7 @@ public final class KsqlTarget {
         recordParser.exceptionHandler(vcf::completeExceptionally);
         // don't end the stream on successful queries as the write stream is potentially
         // reused by multiple read streams
-        recordParser.pipe().endOnSuccess(false).to(ws, ar -> {
+        recordParser.pipe().endOnSuccess(false).to(ws).onComplete(ar -> {
           end.set(true);
           if (ar.succeeded()) {
             vcf.complete(new ResponseWithBody(resp, Buffer.buffer()));
@@ -521,14 +521,14 @@ public final class KsqlTarget {
     options.setURI(subPath + path);
     options.setTimeout(timeout);
 
-    httpClient.request(options, ar -> {
+    httpClient.request(options).onComplete(ar -> {
       if (ar.failed()) {
         vcf.completeExceptionally(ar.cause());
         return;
       }
 
       final HttpClientRequest httpClientRequest = ar.result();
-      httpClientRequest.response(response -> {
+      httpClientRequest.response().onComplete(response -> {
         if (response.failed()) {
           vcf.completeExceptionally(response.cause());
           return;

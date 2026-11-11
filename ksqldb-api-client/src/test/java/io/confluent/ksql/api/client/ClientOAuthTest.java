@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.api.client;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
+import static org.apache.kafka.common.config.internals.BrokerSecurityConfigs.ALLOWED_SASL_OAUTHBEARER_URLS_CONFIG;
+
 import io.confluent.ksql.api.AuthTest;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.client.util.IdentityProviderService;
@@ -25,10 +28,9 @@ import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.oauth.ClientSecretIdpConfig;
 import io.confluent.ksql.security.oauth.IdpConfig;
 import io.confluent.ksql.util.VertxCompletableFuture;
+import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.web.RoutingContext;
-import org.json.JSONObject;
-
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.Base64;
@@ -36,9 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-
-import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
-import static org.apache.kafka.common.config.internals.BrokerSecurityConfigs.ALLOWED_SASL_OAUTHBEARER_URLS_CONFIG;
+import org.json.JSONObject;
 
 public class ClientOAuthTest extends ClientTest {
   private static final String APP1_DEVELOPER = "app1-developer";
@@ -97,7 +97,7 @@ public class ClientOAuthTest extends ClientTest {
       JSONObject jsonPayload = new JSONObject(payload);
       String sub = jsonPayload.getString("sub");
 
-      workerExecutor.executeBlocking(promise -> {
+      VertxUtils.<Principal>executeBlocking(workerExecutor, promise -> {
         if (Objects.equals(sub, APP1_DEVELOPER)) {
           promise.complete(new AuthTest.StringPrincipal(APP1_DEVELOPER));
         } else {
@@ -107,7 +107,7 @@ public class ClientOAuthTest extends ClientTest {
           routingContext.fail(401, e);
           promise.fail(e);
         }
-      }, vcf);
+      }, false).onComplete(vcf);
 
       return vcf;
     }

@@ -22,13 +22,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.security.DefaultKsqlPrincipal;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
-import io.vertx.ext.auth.authorization.Authorization;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.impl.UserContextInternal;
 import java.security.Principal;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -59,7 +57,7 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
             .fail(UNAUTHORIZED.code(), new KsqlApiException("Failed authentication",
                 ERROR_CODE_UNAUTHORIZED));
       } else {
-        routingContext.setUser(new AuthPluginUser(principal));
+        ((UserContextInternal) routingContext.userContext()).setUser(new AuthPluginUser(principal));
         routingContext.next();
       }
     }).exceptionally(t -> {
@@ -87,33 +85,7 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public User isAuthorized(
-        final Authorization authority,
-        final Handler<AsyncResult<Boolean>> resultHandler
-    ) {
-      throw new UnsupportedOperationException();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override
-    public User isAuthorized(final String s, final Handler<AsyncResult<Boolean>> handler) {
-      throw new UnsupportedOperationException();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override
-    public User clearCache() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
     public JsonObject principal() {
-      throw new UnsupportedOperationException();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override
-    public void setAuthProvider(final AuthProvider authProvider) {
       throw new UnsupportedOperationException();
     }
 

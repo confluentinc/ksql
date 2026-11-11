@@ -20,12 +20,13 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.UpgradeRejectedException;
-import io.vertx.core.http.WebsocketVersion;
+import io.vertx.core.http.WebSocketClient;
+import io.vertx.core.http.WebSocketClientOptions;
+import io.vertx.core.http.WebSocketConnectOptions;
+import io.vertx.core.http.WebSocketVersion;
 import io.vertx.core.net.JksOptions;
 import java.net.URI;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -44,10 +45,10 @@ public class WebsocketUtils {
       TestKsqlRestApp restApp, boolean tls)
       throws SSLHandshakeException, UpgradeRejectedException {
     Vertx vertx = Vertx.vertx();
-    io.vertx.core.http.HttpClient httpClient = null;
+    WebSocketClient httpClient = null;
     try {
 
-      HttpClientOptions httpClientOptions = new HttpClientOptions();
+      WebSocketClientOptions httpClientOptions = new WebSocketClientOptions();
       if (tls) {
         httpClientOptions.setSsl(true).setVerifyHost(false);
 
@@ -58,11 +59,11 @@ public class WebsocketUtils {
         final Optional<JksOptions> keyStoreOptions =
             VertxSslOptionsFactory.buildJksKeyStoreOptions(clientProps, Optional.ofNullable(alias));
 
-        trustStoreOptions.ifPresent(options -> httpClientOptions.setTrustStoreOptions(options));
-        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyStoreOptions(options));
+        trustStoreOptions.ifPresent(options -> httpClientOptions.setTrustOptions(options));
+        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyCertOptions(options));
       }
 
-      httpClient = vertx.createHttpClient(httpClientOptions);
+      httpClient = vertx.createWebSocketClient(httpClientOptions);
 
       URI listener = tls ? restApp.getWssListener() : restApp.getWsListener();
 
@@ -71,8 +72,10 @@ public class WebsocketUtils {
       CompletableFuture<Void> completableFuture = new CompletableFuture<>();
 
       httpClient
-          .webSocketAbs(uri.toString(), headers, WebsocketVersion.V07,
-              Collections.emptyList(), ar -> {
+          .connect(new WebSocketConnectOptions()
+              .setAbsoluteURI(uri.toString())
+              .setHeaders(headers)
+              .setVersion(WebSocketVersion.V07)).onComplete(ar -> {
                 if (ar.succeeded()) {
                   ar.result().frameHandler(frame -> completableFuture.complete(null));
                   ar.result().exceptionHandler(completableFuture::completeExceptionally);

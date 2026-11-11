@@ -21,9 +21,9 @@ import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -100,19 +100,16 @@ public class KsqlTargetTest {
     closeConnection = new CompletableFuture<>();
     executor = Executors.newSingleThreadExecutor();
 
-    when(httpClientRequest.response(any(Handler.class))).thenAnswer(a -> {
-      final Handler<AsyncResult<HttpClientResponse>> handler = a.getArgument(0);
+    when(httpClientRequest.response()).thenAnswer(a -> {
+      final Promise<HttpClientResponse> handler = Promise.promise();
       vertx.runOnContext(v -> {
         handler.handle(Future.succeededFuture(httpClientResponse));
         requestStarted.set(true);
       });
-      return null;
+      return handler.future();
     });
-    doAnswer(a -> {
-      final Handler<AsyncResult<HttpClientRequest>> handler = a.getArgument(1);
-      handler.handle(Future.succeededFuture(httpClientRequest));
-      return null;
-    }).when(httpClient).request(any(RequestOptions.class), any(Handler.class));
+    when(httpClient.request(any(RequestOptions.class)))
+        .thenReturn(Future.succeededFuture(httpClientRequest));
 
     when(httpClientResponse.handler(handlerCaptor.capture()))
         .thenReturn(httpClientResponse);
@@ -143,8 +140,8 @@ public class KsqlTargetTest {
         if (rs != null) {
           rows.addAll(rs);
         }
-        return writeStream;
-      }).when(writeStream).write(any(), any());
+        return Future.succeededFuture();
+      }).when(writeStream).write(any());
 
       response.set(ksqlTarget.postQueryRequest(
           QUERY, ImmutableMap.of(), Optional.empty(), writeStream, closeConnection, Function.identity()));
@@ -205,13 +202,13 @@ public class KsqlTargetTest {
     // When the Vert.x async result for the response itself fails (e.g. connection reset before
     // headers), response.result() is null. Before the fix this caused a NullPointerException;
     // after the fix it should propagate a KsqlRestClientException.
-    when(httpClientRequest.response(any(Handler.class))).thenAnswer(a -> {
-      final Handler<AsyncResult<HttpClientResponse>> handler = a.getArgument(0);
+    when(httpClientRequest.response()).thenAnswer(a -> {
+      final Promise<HttpClientResponse> handler = Promise.promise();
       vertx.runOnContext(v -> {
         handler.handle(Future.failedFuture(new RuntimeException("connection reset")));
         requestStarted.set(true);
       });
-      return null;
+      return handler.future();
     });
 
     ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST,
@@ -302,13 +299,13 @@ public class KsqlTargetTest {
     // response is received, Vert.x can invoke the response handler with a null result. The
     // async path must complete the future exceptionally with a KsqlRestClientException
     // rather than letting an NPE escape onto the event loop and crash the JVM.
-    when(httpClientRequest.response(any(Handler.class))).thenAnswer(a -> {
-      final Handler<AsyncResult<HttpClientResponse>> handler = a.getArgument(0);
+    when(httpClientRequest.response()).thenAnswer(a -> {
+      final Promise<HttpClientResponse> handler = Promise.promise();
       vertx.runOnContext(v -> {
         handler.handle(Future.succeededFuture(null));
         requestStarted.set(true);
       });
-      return null;
+      return handler.future();
     });
 
     ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST,
@@ -372,7 +369,7 @@ public class KsqlTargetTest {
     handlerCaptor.getValue().handle(Buffer.buffer());
 
     // Then:
-    verify(httpClient).request(requestOptionsCaptor.capture(), any());
+    verify(httpClient).request(requestOptionsCaptor.capture());
     assertThat(requestOptionsCaptor.getValue().getTimeout(), is(300L));
   }
 }

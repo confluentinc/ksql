@@ -22,7 +22,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.vertx.codegen.annotations.Nullable;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
@@ -62,23 +61,13 @@ public class RunnerUtils {
 
     @Override
     public Future<Void> write(final Buffer data) {
-      write(data, null);
-      return Future.succeededFuture();
-    }
-
-    @Override
-    public void write(final Buffer data, final Handler<AsyncResult<Void>> handler) {
       recordParser.handle(data);
+      return Future.succeededFuture();
     }
 
     @Override
     public Future<Void> end() {
       return Future.succeededFuture();
-    }
-
-    @Override
-    public void end(final Handler<AsyncResult<Void>> handler) {
-
     }
 
     @Override

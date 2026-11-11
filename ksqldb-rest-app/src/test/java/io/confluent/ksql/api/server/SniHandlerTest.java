@@ -22,7 +22,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.vertx.core.http.HttpConnection;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.net.HostAndPort;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,7 +49,7 @@ public class SniHandlerTest {
     when(routingContext.request()).thenReturn(serverRequest);
     when(serverRequest.connection()).thenReturn(httpConnection);
     when(serverRequest.isSSL()).thenReturn(true);
-    when(serverRequest.host()).thenReturn("");
+    givenHost("");
     when(httpConnection.indicatedServerName()).thenReturn("");
     sniHandler = new SniHandler();
   }
@@ -82,7 +84,7 @@ public class SniHandlerTest {
   @Test
   public void shouldNotCheckIfHostNull() {
     // Given:
-    when(serverRequest.host()).thenReturn(null);
+    givenHost(null);
 
     // When:
     sniHandler.handle(routingContext);
@@ -95,7 +97,7 @@ public class SniHandlerTest {
   @Test
   public void shouldReturnMisdirectedResponse() {
     // Given:
-    when(serverRequest.host()).thenReturn("localhost");
+    givenHost("localhost");
     when(httpConnection.indicatedServerName()).thenReturn("anotherhost");
 
     // When:
@@ -109,7 +111,7 @@ public class SniHandlerTest {
   @Test
   public void shouldReturnMisdirectedResponseEvenIfPortInHost() {
     // Given:
-    when(serverRequest.host()).thenReturn("localhost:80");
+    givenHost("localhost:80");
     when(httpConnection.indicatedServerName()).thenReturn("anotherhost");
 
     // When:
@@ -123,7 +125,7 @@ public class SniHandlerTest {
   @Test
   public void shouldNotReturnMisdirectedResponseIfMatch() {
     // Given:
-    when(serverRequest.host()).thenReturn("localhost");
+    givenHost("localhost");
     when(httpConnection.indicatedServerName()).thenReturn("localhost");
 
     // When:
@@ -137,7 +139,7 @@ public class SniHandlerTest {
   @Test
   public void shouldNotReturnMisdirectedResponseIfMatchHostPort() {
     // Given:
-    when(serverRequest.host()).thenReturn("localhost:80");
+    givenHost("localhost:80");
     when(httpConnection.indicatedServerName()).thenReturn("localhost");
 
     // When:
@@ -146,5 +148,14 @@ public class SniHandlerTest {
     // Then:
     verify(routingContext, never()).fail(anyInt(), any());
     verify(routingContext, times(1)).next();
+  }
+
+  private void givenHost(final String host) {
+    final HostAndPort authority =
+        host == null || host.isEmpty() ? null : HostAndPort.parseAuthority(host, -1);
+    when(serverRequest.authority()).thenReturn(authority);
+    if (authority == null) {
+      when(serverRequest.getHeader(HttpHeaders.HOST.toString())).thenReturn(host);
+    }
   }
 }

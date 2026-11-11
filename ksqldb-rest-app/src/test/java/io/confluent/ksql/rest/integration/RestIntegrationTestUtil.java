@@ -57,7 +57,9 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
-import io.vertx.core.http.WebsocketVersion;
+import io.vertx.core.http.WebSocketClient;
+import io.vertx.core.http.WebSocketConnectOptions;
+import io.vertx.core.http.WebSocketVersion;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
@@ -402,9 +404,9 @@ public final class RestIntegrationTestUtil {
       credentials.ifPresent(basicCredentials -> request.putHeader(
           "Authorization", createBasicAuthHeader(basicCredentials)));
       if (bodyBuffer != null) {
-        request.sendBuffer(bodyBuffer, requestFuture);
+        request.sendBuffer(bodyBuffer).onComplete(requestFuture);
       } else {
-        request.send(requestFuture);
+        request.send().onComplete(requestFuture);
       }
       writeStream.ifPresent(s -> request.as(BodyCodec.pipe(s)));
       return requestFuture.get();
@@ -445,11 +447,10 @@ public final class RestIntegrationTestUtil {
       final HttpClient httpClient = vertx.createHttpClient(options);
       final VertxCompletableFuture<Void> vcf = new VertxCompletableFuture<>();
       httpClient.request(method,
-          uri,
-          ar -> {
+          uri).onComplete(ar -> {
             final HttpClientRequest req = ar.result();
             req.exceptionHandler(vcf::completeExceptionally);
-            req.response(ar2 -> {
+            req.response().onComplete(ar2 -> {
               final HttpClientResponse resp = ar2.result();
               resp.handler(buffer -> {
                 try {
@@ -589,9 +590,9 @@ public final class RestIntegrationTestUtil {
       final Optional<Map<String, Object>> requestProperties
   ) {
     Vertx vertx = Vertx.vertx();
-    HttpClient httpClient = null;
+    WebSocketClient httpClient = null;
     try {
-      httpClient = vertx.createHttpClient();
+      httpClient = vertx.createWebSocketClient();
 
       final String uri = baseUri.toString() + "/ws/query?request="
           + buildStreamingRequest(sql, overrides, requestProperties)
@@ -604,8 +605,10 @@ public final class RestIntegrationTestUtil {
 
       CompletableFuture<List<String>> completableFuture = new CompletableFuture<>();
 
-      httpClient.webSocketAbs(uri, headers, WebsocketVersion.V07,
-          Collections.emptyList(), ar -> {
+      httpClient.connect(new WebSocketConnectOptions()
+          .setAbsoluteURI(uri)
+          .setHeaders(headers)
+          .setVersion(WebSocketVersion.V07)).onComplete(ar -> {
             if (ar.succeeded()) {
               List<String> messages = new ArrayList<>();
               ar.result().frameHandler(frame -> {
@@ -642,7 +645,7 @@ public final class RestIntegrationTestUtil {
       final Consumer<String> chunkConsumer
   ) {
     Vertx vertx = Vertx.vertx();
-    final HttpClient httpClient = vertx.createHttpClient();
+    final WebSocketClient httpClient = vertx.createWebSocketClient();
 
     final String uri = baseUri.toString() + "/ws/query?request="
         + buildStreamingRequest(sql, Optional.of(overrides), Optional.empty());
@@ -657,8 +660,10 @@ public final class RestIntegrationTestUtil {
 
     CompletableFuture<Void> completableFuture = new CompletableFuture<>();
 
-    httpClient.webSocketAbs(uri, headers, WebsocketVersion.V07,
-        Collections.emptyList(), ar -> {
+    httpClient.connect(new WebSocketConnectOptions()
+        .setAbsoluteURI(uri)
+        .setHeaders(headers)
+        .setVersion(WebSocketVersion.V07)).onComplete(ar -> {
           if (ar.succeeded()) {
             ar.result().frameHandler(frame -> {
               if (frame.isText()) {

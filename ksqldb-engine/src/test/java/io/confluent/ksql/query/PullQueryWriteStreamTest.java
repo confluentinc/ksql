@@ -91,7 +91,7 @@ public class PullQueryWriteStreamTest {
   public void shouldPoll() {
     // Given:
     final AtomicBoolean written = new AtomicBoolean(false);
-    writeStream.write(getData(1), ignored -> written.set(true));
+    writeStream.write(getData(1)).onComplete(ignored -> written.set(true));
 
     // When:
     final KeyValueMetadata<List<?>, GenericRow> row = writeStream.poll();

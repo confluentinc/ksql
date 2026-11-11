@@ -29,7 +29,6 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
-import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -76,7 +75,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
         .forEachRemaining(type -> this.typeRegistry.registerType(type.getName(), type.getType()));
 
     dropConstraints.forEach((source, references) -> {
-      final Set<SourceName> childSources = new ConcurrentHashSet<>();
+      final Set<SourceName> childSources = ConcurrentHashMap.newKeySet();
       childSources.addAll(references);
       this.dropConstraints.put(source, childSources);
     });
@@ -393,7 +392,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
     // parent sources that this source references to; it is used to remove constraints from
     // the parent table when this source is deleted
-    private final Set<SourceName> references = new ConcurrentHashSet<>();
+    private final Set<SourceName> references = ConcurrentHashMap.newKeySet();
 
     private SourceInfo(
         final DataSource source

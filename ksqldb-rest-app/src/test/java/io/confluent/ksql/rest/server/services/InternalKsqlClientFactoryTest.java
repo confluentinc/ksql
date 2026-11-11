@@ -9,8 +9,9 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientAgent;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.PoolOptions;
 import io.vertx.core.net.SocketAddress;
 import java.util.List;
 import org.junit.Before;
@@ -27,13 +28,15 @@ public class InternalKsqlClientFactoryTest {
   @Mock
   private Vertx vertx;
   @Mock
-  private HttpClient httpClient;
+  private HttpClientAgent httpClient;
   @Captor
   private ArgumentCaptor<HttpClientOptions> options;
+  @Captor
+  private ArgumentCaptor<PoolOptions> poolOptions;
 
   @Before
   public void setUp() {
-    when(vertx.createHttpClient(options.capture())).thenReturn(httpClient);
+    when(vertx.createHttpClient(options.capture(), poolOptions.capture())).thenReturn(httpClient);
   }
 
   @Test
@@ -55,14 +58,14 @@ public class InternalKsqlClientFactoryTest {
             KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG, "1234"
         ), SocketAddress::inetSocketAddress,
         vertx);
-    List<HttpClientOptions> optionsList = options.getAllValues();
+    List<PoolOptions> poolOptionsList = poolOptions.getAllValues();
 
 
     // Then:
     assertThat(client, notNullValue());
-    assertThat(optionsList.size(), is(4));
-    HttpClientOptions sslOptions = optionsList.get(2);
-    assertThat(sslOptions.getHttp2MaxPoolSize(), is(1234));
+    assertThat(poolOptionsList.size(), is(4));
+    PoolOptions http2PoolOptions = poolOptionsList.get(2);
+    assertThat(http2PoolOptions.getHttp2MaxSize(), is(1234));
   }
 
   @Test
@@ -73,14 +76,14 @@ public class InternalKsqlClientFactoryTest {
             KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG, "abc"
         ), SocketAddress::inetSocketAddress,
         vertx);
-    List<HttpClientOptions> optionsList = options.getAllValues();
+    List<PoolOptions> poolOptionsList = poolOptions.getAllValues();
 
 
     // Then:
     assertThat(client, notNullValue());
-    assertThat(optionsList.size(), is(4));
-    HttpClientOptions sslOptions = optionsList.get(2);
-    assertThat(sslOptions.getHttp2MaxPoolSize(),
+    assertThat(poolOptionsList.size(), is(4));
+    PoolOptions http2PoolOptions = poolOptionsList.get(2);
+    assertThat(http2PoolOptions.getHttp2MaxSize(),
         is(KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT));
   }
 }

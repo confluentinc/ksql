@@ -19,6 +19,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
+import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
@@ -42,10 +43,11 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    workerExecutor.<Void>executeBlocking(
+    VertxUtils.<Void>executeBlocking(
+        workerExecutor,
         promise -> authorize(promise, routingContext),
-        false,
-        ar -> handleAuthorizeResult(ar, routingContext));
+        false
+    ).onComplete(ar -> handleAuthorizeResult(ar, routingContext));
   }
 
   private static void handleAuthorizeResult(final AsyncResult<Void> ar,
@@ -71,7 +73,7 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
     try {
       ksqlAuthorizationProvider
           .checkEndpointAccess(apiUser.getPrincipal(), routingContext.request().method().toString(),
-              routingContext.normalisedPath());
+              routingContext.normalizedPath());
     } catch (Exception e) {
       promise.fail(e);
       return;

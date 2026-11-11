@@ -17,7 +17,6 @@ package io.confluent.ksql.api.utils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.codegen.annotations.Nullable;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -43,31 +42,17 @@ public class ReceiveStream implements WriteStream<Buffer> {
 
   @Override
   public synchronized Future<Void> write(final Buffer data) {
-    firstReceivedTime = System.currentTimeMillis();
+    if (firstReceivedTime == 0) {
+      firstReceivedTime = System.currentTimeMillis();
+    }
     body.appendBuffer(data);
     return Future.succeededFuture();
-  }
-
-  @Override
-  public void write(final Buffer data, final Handler<AsyncResult<Void>> handler) {
-    body.appendBuffer(data);
-    if (handler != null) {
-      vertx.runOnContext(v -> handler.handle(Future.succeededFuture()));
-    }
   }
 
   @Override
   public synchronized Future<Void> end() {
     ended = true;
     return Future.succeededFuture();
-  }
-
-  @Override
-  public void end(final Handler<AsyncResult<Void>> handler) {
-    end();
-    if (handler != null) {
-      vertx.runOnContext(v -> handler.handle(Future.succeededFuture()));
-    }
   }
 
   @Override

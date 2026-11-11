@@ -95,6 +95,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       routingContext.fail(BAD_REQUEST.code(),
           new KsqlApiException("This endpoint is only available when using HTTP1.1 or HTTP2",
               ERROR_CODE_BAD_REQUEST));
+      return;
     }
 
     final CommonRequest request = getRequest(routingContext);

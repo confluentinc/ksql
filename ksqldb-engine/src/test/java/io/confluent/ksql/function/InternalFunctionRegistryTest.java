@@ -367,6 +367,25 @@ public class InternalFunctionRegistryTest {
     assertThat(functionRegistry.isPresent(FunctionName.of("not_found")), is(false));
   }
 
+  @Test
+  public void isPresentShouldBeSynchronized() throws Exception {
+    // Regression: the class is annotated @ThreadSafe and every other accessor
+    // (getUdfFactory, addFunction, ensureFunctionFactory, isAggregate,
+    // getTableFunction, addAggregateFunctionFactory, addTableFunctionFactory,
+    // listFunctions, getAggregateFactory, getTableFunctionFactory,
+    // listAggregateFunctions, listTableFunctions) is synchronized. isPresent
+    // used to be the only public method that did plain HashMap.containsKey
+    // without holding the lock; concurrent addFunction / addAggregateFunctionFactory
+    // calls could resize-race against the read and return wrong booleans (or
+    // spin on a corrupted internal table). The fix is one keyword. Enforce
+    // it with reflection so a future refactor can't quietly remove it.
+    final java.lang.reflect.Method isPresent = InternalFunctionRegistry.class
+        .getDeclaredMethod("isPresent", io.confluent.ksql.name.FunctionName.class);
+    assertTrue("InternalFunctionRegistry.isPresent must be synchronized to match the "
+        + "@ThreadSafe contract honored by every other accessor in the class",
+        java.lang.reflect.Modifier.isSynchronized(isPresent.getModifiers()));
+  }
+
   private void givenUdfFactoryRegistered() {
     functionRegistry.ensureFunctionFactory(UdfLoaderUtil.createTestUdfFactory(func));
   }

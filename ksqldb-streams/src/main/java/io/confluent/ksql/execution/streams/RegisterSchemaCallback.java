@@ -20,9 +20,9 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.ByteBuffer;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -30,7 +30,11 @@ class RegisterSchemaCallback implements StaticTopicSerde.Callback {
 
   private static final Logger LOG = LogManager.getLogger(RegisterSchemaCallback.class);
   private final SchemaRegistryClient srClient;
-  private final Set<SchemaRegisterEvent> failedAttempts = new HashSet<>();
+  // ConcurrentHashMap-backed set: this callback is invoked from every StreamThread on
+  // deserialization failure. A plain HashSet shared across threads would corrupt its bucket
+  // table on concurrent add/contains, producing CME, ghost entries, or infinite loops in
+  // containsKey during a resize race.
+  private final Set<SchemaRegisterEvent> failedAttempts = ConcurrentHashMap.newKeySet();
 
   RegisterSchemaCallback(final SchemaRegistryClient srClient) {
     this.srClient = Objects.requireNonNull(srClient, "srClient");

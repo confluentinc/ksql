@@ -130,9 +130,28 @@ public final class BackupReplayFile implements Closeable {
 
   public List<Pair<byte[], byte[]>> readRecords() throws IOException {
     final List<Pair<byte[], byte[]>> commands = new ArrayList<>();
-    for (final String line : Files.readAllLines(getFile().toPath(), StandardCharsets.UTF_8)) {
-      final String commandId = line.substring(0, line.indexOf(KEY_VALUE_SEPARATOR_STR));
-      final String command = line.substring(line.indexOf(KEY_VALUE_SEPARATOR_STR) + 1);
+    final List<String> lines = Files.readAllLines(getFile().toPath(), StandardCharsets.UTF_8);
+    for (int i = 0; i < lines.size(); i++) {
+      final String line = lines.get(i);
+
+      // Tolerate stray blank lines (e.g. a hand-edited file or a trailing newline) instead of
+      // failing the whole backup.
+      if (line.isEmpty()) {
+        continue;
+      }
+
+      final int separatorIndex = line.indexOf(KEY_VALUE_SEPARATOR_STR);
+      if (separatorIndex < 0) {
+        // A line with content but no key/value separator means the backup is corrupted or
+        // truncated (e.g. a torn write). Fail with a clear, actionable message rather than an
+        // opaque StringIndexOutOfBoundsException from substring(0, -1).
+        throw new KsqlException(String.format(
+            "Corrupted backup file %s: line %d is missing the '%s' key/value separator.",
+            getPath(), i + 1, KEY_VALUE_SEPARATOR_STR));
+      }
+
+      final String commandId = line.substring(0, separatorIndex);
+      final String command = line.substring(separatorIndex + 1);
 
       commands.add(new Pair<>(
           commandId.getBytes(StandardCharsets.UTF_8),

@@ -769,20 +769,6 @@ public class LogicalPlanner {
       ));
     }
 
-    // after we lift this n-way join restriction, we should be able to support FK-joins
-    // at any level in the join tree, even after we add right-deep/bushy join tree support,
-    // because a FK-join output table has the same PK as its left input table
-    if (!(leftNode instanceof DataSourceNode)
-        || !(rightNode instanceof DataSourceNode)) {
-      throw new KsqlException(String.format(
-          "Invalid join condition:"
-              + " foreign-key table-table joins are not supported as part of n-way joins."
-              + " Got %s = %s.",
-          joinInfo.getFlippedLeftJoinExpression(),
-          joinInfo.getFlippedRightJoinExpression()
-      ));
-    }
-
     final CodeGenRunner codeGenRunner = new CodeGenRunner(
         leftNode.getSchema(),
         ksqlConfig,
@@ -800,13 +786,48 @@ public class LogicalPlanner {
           }
         };
 
-    final Expression leftExpressionUnqualified =
-        ExpressionTreeRewriter.rewriteWith(unqualifiedRewritter::process, leftExpression);
-    final ExpressionEvaluator expressionEvaluator = codeGenRunner.buildCodeGenFromParseTree(
-        leftExpressionUnqualified,
-        "Left Join Expression"
-    );
-    final SqlType fkType = expressionEvaluator.getExpressionType();
+    final SqlType fkType;
+    ExpressionEvaluator expressionEvaluator = null;
+    if (! (leftExpression instanceof ColumnReferenceExp)) {
+      final Expression leftExpressionUnqualified =
+          ExpressionTreeRewriter.rewriteWith(unqualifiedRewritter::process, leftExpression);
+      try {
+        expressionEvaluator = codeGenRunner.buildCodeGenFromParseTree(
+            leftExpressionUnqualified,
+            "Left Join Expression"
+        );
+      } catch (KsqlException e) {
+        if (e.getMessage().contains("Cannot find the select field in the available fields")){
+          throw new KsqlException(String.format(
+              "N-way joins do not support complex join expressions like %s", leftExpression));
+        } else {
+          throw e;
+        }
+      }
+      fkType = expressionEvaluator.getExpressionType();
+    } else {
+      final ColumnReferenceExp columnReferenceExp = (ColumnReferenceExp)leftExpression;
+      final ColumnName columnName;
+      if (leftNode instanceof JoinNode
+          && ((ColumnReferenceExp) leftExpression).maybeQualifier().isPresent())
+      {
+        final SourceName alias = ((ColumnReferenceExp) leftExpression).maybeQualifier().get();
+        columnName = ColumnNames.generatedJoinColumnAlias(
+            alias, columnReferenceExp.getColumnName());
+      } else {
+        columnName = columnReferenceExp.getColumnName();
+      }
+      final Optional<Column> col = leftNode.getSchema().findColumn(columnName);
+      if (col.isPresent()) {
+        fkType = col.get().type();
+      } else {
+        throw new KsqlException(String.format(
+            "Unknown column used in the left argument of the condition of foreign key join. "
+                + "Column: %s, schema: %s", leftExpression, leftNode.getSchema()));
+      }
+    }
+
+    // The right argument of a join must always be the key?
     final SqlType rightKeyType = Iterables.getOnlyElement(rightNode.getSchema().key()).type();
 
     verifyJoinConditionTypes(

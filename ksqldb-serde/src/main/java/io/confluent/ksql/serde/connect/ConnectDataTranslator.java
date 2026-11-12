@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.serde.connect;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.serde.SerdeUtils;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -129,7 +131,10 @@ public class ConnectDataTranslator implements DataTranslator {
       Schema.Type.FLOAT32,
       Schema.Type.FLOAT64,
       Schema.Type.BOOLEAN,
-      Schema.Type.STRING
+      Schema.Type.STRING,
+      Schema.Type.STRUCT,
+      Schema.Type.ARRAY,
+      Schema.Type.MAP
   };
 
   private static void validateSchema(
@@ -170,7 +175,7 @@ public class ConnectDataTranslator implements DataTranslator {
     if (connectSchema.name() == null) {
       return connectValue;
     }
-    switch  (connectSchema.name()) {
+    switch (connectSchema.name()) {
       case Date.LOGICAL_NAME:
         return Date.fromLogical(connectSchema, (java.util.Date) connectValue);
       case Time.LOGICAL_NAME:
@@ -231,7 +236,10 @@ public class ConnectDataTranslator implements DataTranslator {
       case STRUCT:
         return toKsqlStruct(schema, connectSchema, (Struct) convertedValue, pathStr);
       case STRING:
-        // use String.valueOf to convert various int types and Boolean to string
+        if (convertedValue instanceof Struct) {
+          return structToString((Struct) convertedValue);
+        }
+        // use String.valueOf to convert various int types, and Boolean to string
         return String.valueOf(convertedValue);
       case BYTES:
         if (convertedValue instanceof byte[]) {
@@ -243,6 +251,47 @@ public class ConnectDataTranslator implements DataTranslator {
         return convertedValue;
     }
   }
+
+  private String structToString(final Struct input) {
+    final StringBuilder sb = new StringBuilder("{");
+    boolean first = true;
+    final List<Field> fields = input.schema().fields();
+
+    for (Field field : fields) {
+      final Object value = input.get(field);
+      if (value != null) {
+        if (first) {
+          first = false;
+        } else {
+          sb.append(",");
+        }
+        sb.append("\"").append(field.name()).append("\"").append(":");
+        if (value instanceof Struct) {
+          sb.append(structToString((Struct) value));
+        } else if (value instanceof Map || value instanceof ArrayList) {
+          sb.append(objectToString(value));
+        } else if (value instanceof String) {
+          sb.append("\"").append(value).append("\"");
+        } else {
+          sb.append(value);
+        }
+      }
+    }
+
+    return sb.append("}").toString();
+  }
+
+  private <T> String objectToString(final T input) {
+    final ObjectMapper mapper = new ObjectMapper();
+    final String json;
+    try {
+      json = mapper.writeValueAsString(input);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+    return json;
+  }
+
 
   private List<?> toKsqlArray(
       final Schema valueSchema,

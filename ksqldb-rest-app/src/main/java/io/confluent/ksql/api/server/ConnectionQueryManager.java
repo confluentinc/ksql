@@ -22,6 +22,7 @@ import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerRequest;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -85,7 +86,12 @@ public class ConnectionQueryManager {
     @Override
     public void handle(final Void v) {
       checkContext();
-      for (PushQueryHolder query : queries) {
+      // Iterate over a snapshot. PushQueryHolder.close() invokes the
+      // closeHandler (this::removeQuery), which mutates the underlying set.
+      // Iterating the live set throws ConcurrentModificationException on the
+      // second query, leaving subsequent push queries (and their KafkaStreams
+      // resources) never closed — a per-dropped-connection resource leak.
+      for (PushQueryHolder query : new ArrayList<>(queries)) {
         query.close();
       }
       connectionsMap.remove(conn);

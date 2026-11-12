@@ -176,8 +176,19 @@ public class CommandTopic {
   }
 
   public void close() {
-    commandConsumer.close();
-    commandTopicBackup.close();
+    // Run both closes — a throw from commandConsumer.close() (transient Kafka
+    // error on shutdown) previously skipped commandTopicBackup.close(),
+    // leaving the backup file handle and any watcher resources stranded.
+    try {
+      commandConsumer.close();
+    } catch (final Throwable t) {
+      log.warn("Error closing command consumer; continuing with backup close", t);
+    }
+    try {
+      commandTopicBackup.close();
+    } catch (final Throwable t) {
+      log.warn("Error closing command topic backup", t);
+    }
   }
 
   private static void backupRecord(

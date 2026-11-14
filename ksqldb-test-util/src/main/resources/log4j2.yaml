@@ -71,7 +71,10 @@ Configuration:
         level: WARN
       - name: org.apache.kafka.streams.state.internals.RocksDBTimestampedStore
         level: WARN
-      - name: org.apache.kafka.common.utils.AppInfoParser
+      - name: org.apache.kafka.common.utils.internals.AppInfoParser
+        level: WARN
+      # Every config class logs its "values:" dump under this logger, not its own.
+      - name: org.apache.kafka.common.config.AbstractConfig
         level: WARN
       - name: org.reflections
         level: ERROR

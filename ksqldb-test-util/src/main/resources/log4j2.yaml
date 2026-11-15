@@ -71,6 +71,9 @@ Configuration:
         level: WARN
       - name: org.apache.kafka.streams.state.internals.RocksDBTimestampedStore
         level: WARN
+      # AppInfoParser's package depends on the Kafka version this branch builds against.
+      - name: org.apache.kafka.common.utils.AppInfoParser
+        level: WARN
       - name: org.apache.kafka.common.utils.internals.AppInfoParser
         level: WARN
       # Every config class logs its "values:" dump under this logger, not its own.

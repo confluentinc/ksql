@@ -153,6 +153,14 @@
             <version>${kafka.version}</version>
         </dependency>
 
+        <!-- Used by tests (e.g. ClientTest); previously arrived transitively via ksqldb-rest-app -->
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web-client</artifactId>
+            <version>${vertx.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Only required to provide LoginModule implementation in tests -->
         <dependency>
             <groupId>org.eclipse.jetty</groupId>

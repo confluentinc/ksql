@@ -53,7 +53,7 @@ public class PreconditionVerticle extends AbstractVerticle {
   public void start(final Promise<Void> startPromise) {
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
         .exceptionHandler(ApiServerUtils::unhandledExceptionHandler);
-    httpServer.listen(ar -> {
+    httpServer.listen().onComplete(ar -> {
       if (ar.succeeded()) {
         startPromise.complete();
       } else {
@@ -67,7 +67,7 @@ public class PreconditionVerticle extends AbstractVerticle {
     if (httpServer == null) {
       stopPromise.complete();
     } else {
-      httpServer.close(ar -> stopPromise.complete());
+      httpServer.close().onComplete(ar -> stopPromise.complete());
     }
   }
 

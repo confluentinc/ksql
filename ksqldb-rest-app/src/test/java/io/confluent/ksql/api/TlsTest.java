@@ -87,7 +87,7 @@ public class TlsTest extends ApiTest {
     return new WebClientOptions().setSsl(true).
         setUseAlpn(true).
         setProtocolVersion(HttpVersion.HTTP_2).
-        setTrustStoreOptions(
+        setTrustOptions(
             new JksOptions().setPath(clientTrustStorePath).setPassword(clientTrustStorePassword)).
         setVerifyHost(false).
         setDefaultHost("localhost").
@@ -106,7 +106,7 @@ public class TlsTest extends ApiTest {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
         .post("/ksql")
-        .sendBuffer(requestBody.toBuffer(), requestFuture);
+        .sendBuffer(requestBody.toBuffer()).onComplete(requestFuture);
 
     // Then
     try {

@@ -23,12 +23,12 @@ import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StreamInsertsResponseHandler
     extends ResponseHandler<CompletableFuture<AcksPublisher>> {
@@ -83,7 +83,7 @@ public class StreamInsertsResponseHandler
 
   @Override
   protected void doHandleException(final Throwable t) {
-    log.error(t);
+    log.error(t.toString());
     acksPublisher.handleError(new Exception(t));
   }
 

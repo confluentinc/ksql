@@ -111,11 +111,10 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
   }
 
   private void executeOnWorker(final Runnable runnable) {
-    workerExecutor.executeBlocking(p -> runnable.run(), false, ar -> {
-      if (ar.failed()) {
-        log.error("Failed to close print", ar.cause());
-      }
-    });
+    workerExecutor.executeBlocking(() -> {
+      runnable.run();
+      return null;
+    }, false).onFailure(t -> log.error("Failed to close print", t));
   }
 
   private void doSend() {

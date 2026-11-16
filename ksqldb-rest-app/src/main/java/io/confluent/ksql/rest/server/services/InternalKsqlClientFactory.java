@@ -24,6 +24,7 @@ import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.http.PoolOptions;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
 import java.util.Map;
@@ -53,8 +54,10 @@ public final class InternalKsqlClientFactory {
         Optional.empty(),
         new LocalProperties(ImmutableMap.of()),
         httpOptionsFactory(clientProps, verifyHost, InternalKsqlClientFactory::createClientOptions),
+        new PoolOptions().setHttp1MaxSize(100),
         httpOptionsFactory(clientProps, verifyHost,
             InternalKsqlClientFactory::createClientOptionsHttp2),
+        createPoolOptionsHttp2(clientProps),
         socketAddressFactory,
         vertx
     );
@@ -75,7 +78,7 @@ public final class InternalKsqlClientFactory {
           VertxSslOptionsFactory.getJksTrustStoreOptions(clientProps);
 
       if (trustStoreOptions.isPresent()) {
-        httpClientOptions.setTrustStoreOptions(trustStoreOptions.get());
+        httpClientOptions.setTrustOptions(trustStoreOptions.get());
 
         final Optional<JksOptions> keyStoreOptions =
             VertxSslOptionsFactory.buildJksKeyStoreOptions(
@@ -84,7 +87,7 @@ public final class InternalKsqlClientFactory {
                     clientProps.get(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG))
             );
 
-        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyStoreOptions(options));
+        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyCertOptions(options));
       }
 
       return httpClientOptions;
@@ -95,13 +98,23 @@ public final class InternalKsqlClientFactory {
       final Map<String, String> clientProps,
       final boolean tls
   ) {
-    return new HttpClientOptions().setMaxPoolSize(100);
+    return new HttpClientOptions();
   }
 
   private static HttpClientOptions createClientOptionsHttp2(
       final Map<String, String> clientProps,
       final boolean tls
   ) {
+    return new HttpClientOptions()
+        // At the moment, we cannot asynchronously end long-running queries in http2, in a way that
+        // we can with http1.1, by just closing the connection. For that reason, we've disabled
+        // multiplexing: https://github.com/confluentinc/ksql/issues/8505
+        .setHttp2MultiplexingLimit(1)
+        .setProtocolVersion(HttpVersion.HTTP_2)
+        .setUseAlpn(tls);
+  }
+
+  private static PoolOptions createPoolOptionsHttp2(final Map<String, String> clientProps) {
     final String size = clientProps.get(
         KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG);
     int sizeInt;
@@ -116,13 +129,6 @@ public final class InternalKsqlClientFactory {
     } else {
       sizeInt = KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT;
     }
-    return new HttpClientOptions()
-        // At the moment, we cannot asynchronously end long-running queries in http2, in a way that
-        // we can with http1.1, by just closing the connection. For that reason, we've disabled
-        // multiplexing: https://github.com/confluentinc/ksql/issues/8505
-        .setHttp2MultiplexingLimit(1)
-        .setHttp2MaxPoolSize(sizeInt)
-        .setProtocolVersion(HttpVersion.HTTP_2)
-        .setUseAlpn(tls);
+    return new PoolOptions().setHttp2MaxSize(sizeInt);
   }
 }

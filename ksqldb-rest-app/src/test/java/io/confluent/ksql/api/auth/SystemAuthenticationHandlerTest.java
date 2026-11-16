@@ -13,6 +13,7 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.impl.UserContextInternal;
 import java.security.Principal;
 import java.util.Optional;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -30,6 +31,7 @@ public class SystemAuthenticationHandlerTest {
   @Mock private HttpConnection connection;
   @Mock private SSLSession sslSession;
   @Mock private Principal principal;
+  @Mock private UserContextInternal userContext;
 
   @Test
   public void shouldSetUser_validSsl() throws SSLPeerUnverifiedException {
@@ -38,9 +40,10 @@ public class SystemAuthenticationHandlerTest {
     when(connection.isSsl()).thenReturn(true);
     when(connection.sslSession()).thenReturn(sslSession);
     when(sslSession.getPeerPrincipal()).thenReturn(principal);
+    when(routingContext.userContext()).thenReturn(userContext);
     SystemAuthenticationHandler handler = new SystemAuthenticationHandler();
     handler.handle(routingContext);
-    verify(routingContext).setUser(any());
+    verify(userContext).setUser(any());
     verify(routingContext).next();
   }
 
@@ -51,7 +54,7 @@ public class SystemAuthenticationHandlerTest {
     when(connection.isSsl()).thenReturn(false);
     SystemAuthenticationHandler handler = new SystemAuthenticationHandler();
     handler.handle(routingContext);
-    verify(routingContext, never()).setUser(any());
+    verify(userContext, never()).setUser(any());
     verify(routingContext).next();
   }
 
@@ -64,7 +67,7 @@ public class SystemAuthenticationHandlerTest {
     when(sslSession.getPeerPrincipal()).thenThrow(new SSLPeerUnverifiedException("Not verified"));
     SystemAuthenticationHandler handler = new SystemAuthenticationHandler();
     handler.handle(routingContext);
-    verify(routingContext, never()).setUser(any());
+    verify(userContext, never()).setUser(any());
     verify(routingContext).next();
   }
 }

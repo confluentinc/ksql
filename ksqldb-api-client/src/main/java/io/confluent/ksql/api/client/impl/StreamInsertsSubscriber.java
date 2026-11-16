@@ -21,10 +21,10 @@ import io.confluent.ksql.reactive.BaseSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.util.Objects;
 import org.reactivestreams.Subscription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StreamInsertsSubscriber extends BaseSubscriber<KsqlObject> {
 

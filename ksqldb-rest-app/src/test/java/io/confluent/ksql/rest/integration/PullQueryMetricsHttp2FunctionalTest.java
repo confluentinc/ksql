@@ -295,7 +295,7 @@ public class PullQueryMetricsHttp2FunctionalTest {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
         .post(uri)
-        .sendBuffer(requestBody, requestFuture);
+        .sendBuffer(requestBody).onComplete(requestFuture);
     try {
       return requestFuture.get();
     } catch (Exception e) {

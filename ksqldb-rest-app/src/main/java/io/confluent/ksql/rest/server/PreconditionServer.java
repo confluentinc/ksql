@@ -92,7 +92,7 @@ public class PreconditionServer {
             serverState,
             config
         );
-        vertx.deployVerticle(serverVerticle, vcf);
+        vertx.deployVerticle(serverVerticle).onComplete(vcf);
         deployFutures.add(vcf);
       }
     }
@@ -128,7 +128,7 @@ public class PreconditionServer {
     final List<CompletableFuture<Void>> undeployFutures = new ArrayList<>();
     for (String deploymentID : deploymentIds) {
       final VertxCompletableFuture<Void> future = new VertxCompletableFuture<>();
-      vertx.undeploy(deploymentID, future);
+      vertx.undeploy(deploymentID).onComplete(future);
       undeployFutures.add(future);
     }
     try {

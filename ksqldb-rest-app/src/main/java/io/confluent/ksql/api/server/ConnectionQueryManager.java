@@ -22,6 +22,7 @@ import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerRequest;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -85,7 +86,8 @@ public class ConnectionQueryManager {
     @Override
     public void handle(final Void v) {
       checkContext();
-      for (PushQueryHolder query : queries) {
+      // copy, as closing a query removes it from the set (synchronously, as of Vert.x 5)
+      for (PushQueryHolder query : new ArrayList<>(queries)) {
         query.close();
       }
       connectionsMap.remove(conn);

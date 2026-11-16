@@ -16,14 +16,12 @@
 package io.confluent.ksql.api.auth;
 
 import io.confluent.ksql.security.DefaultKsqlPrincipal;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
-import io.vertx.ext.auth.authorization.Authorization;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.impl.UserContextInternal;
 import java.security.Principal;
 import java.util.Objects;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -42,7 +40,7 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
       throw new IllegalStateException("Should only have ssl connections");
     }
     final Principal peerPrincipal = getPeerPrincipal(httpConnection.sslSession());
-    routingContext.setUser(new SystemUser(peerPrincipal));
+    ((UserContextInternal) routingContext.userContext()).setUser(new SystemUser(peerPrincipal));
     routingContext.next();
   }
 
@@ -76,33 +74,7 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public User isAuthorized(
-        final Authorization authority,
-        final Handler<AsyncResult<Boolean>> resultHandler
-    ) {
-      throw new UnsupportedOperationException();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override
-    public User isAuthorized(final String s, final Handler<AsyncResult<Boolean>> handler) {
-      throw new UnsupportedOperationException();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override
-    public User clearCache() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
     public JsonObject principal() {
-      throw new UnsupportedOperationException();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override
-    public void setAuthProvider(final AuthProvider authProvider) {
       throw new UnsupportedOperationException();
     }
 

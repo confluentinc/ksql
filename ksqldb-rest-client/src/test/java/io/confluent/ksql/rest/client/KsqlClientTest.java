@@ -800,7 +800,7 @@ public class KsqlClientTest {
     HttpServerOptions serverOptions = new HttpServerOptions().setPort(0)
         .setHost("localhost")
         .setSsl(true)
-        .setKeyStoreOptions(keyStoreOptions.get());
+        .setKeyCertOptions(keyStoreOptions.get());
 
     startServer(serverOptions);
     serverUri = URI.create("https://localhost:" + server.getPort());
@@ -809,13 +809,13 @@ public class KsqlClientTest {
   private void startServer(HttpServerOptions httpServerOptions) throws Exception {
     server = new FakeApiServer(httpServerOptions);
     VertxCompletableFuture<String> deployFuture = new VertxCompletableFuture<>();
-    vertx.deployVerticle(server, deployFuture);
+    vertx.deployVerticle(server).onComplete(deployFuture);
     deploymentId = deployFuture.get();
   }
 
   private void stopServer() throws Exception {
     VertxCompletableFuture<Void> undeployFuture = new VertxCompletableFuture<>();
-    vertx.undeploy(deploymentId, undeployFuture);
+    vertx.undeploy(deploymentId).onComplete(undeployFuture);
     undeployFuture.get();
   }
 

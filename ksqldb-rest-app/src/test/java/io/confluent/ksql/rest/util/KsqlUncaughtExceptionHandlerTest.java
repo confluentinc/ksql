@@ -2,7 +2,7 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.util.MockSystemExit;
 import org.apache.kafka.streams.processor.internals.StreamThread;
-import org.apache.log4j.LogManager;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;

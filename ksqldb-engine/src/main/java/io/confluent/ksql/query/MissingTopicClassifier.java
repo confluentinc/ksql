@@ -20,15 +20,15 @@ import java.util.Objects;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.streams.errors.MissingSourceTopicException;
 import org.apache.kafka.streams.errors.StreamsException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * {@code MissingTopicClassifier} classifies missing source topic exceptions as user error
  */
 public class MissingTopicClassifier implements QueryErrorClassifier {
 
-  private static final Logger LOG = LoggerFactory.getLogger(MissingTopicClassifier.class);
+  private static final Logger LOG = LogManager.getLogger(MissingTopicClassifier.class);
 
   private final String queryId;
 

@@ -113,6 +113,10 @@ public class Command {
     return statement;
   }
 
+  /**
+   * Returns the overwrite properties for JSON serialization to command topic.
+   * This preserves the original values as they were stored.
+   */
   @JsonProperty("streamsProperties")
   @SuppressFBWarnings(
       value = "EI_EXPOSE_REP",
@@ -123,16 +127,25 @@ public class Command {
   }
 
   /**
-   * Returns the overwrite properties, but WITHOUT the {@code ConfigDef} type/enum
-   * validation that {@link #getOverwriteProperties()} runs.
+   * Returns the overwrite properties with legacy values migrated, but WITHOUT the
+   * {@code ConfigDef} type/enum validation that {@link #getOverwritePropertiesForExecution()}
+   * runs.
    */
   @JsonIgnore
-  @SuppressFBWarnings(
-      value = "EI_EXPOSE_REP",
-      justification = "overwriteProperties is unmodifiableMap()"
-  )
-  public Map<String, Object> getRawOverwriteProperties() {
-    return overwriteProperties;
+  public Map<String, Object> getRawOverwritePropertiesForExecution() {
+    return ConfigMigrator.migrateOverwriteProperties(overwriteProperties);
+  }
+
+  /**
+   * Returns the overwrite properties for runtime use, with legacy values migrated.
+   * This is what should be used when executing queries.
+   */
+  @JsonIgnore
+  public Map<String, Object> getOverwritePropertiesForExecution() {
+    final Map<String, Object> migrated = ConfigMigrator.migrateOverwriteProperties(
+        overwriteProperties
+    );
+    return PropertiesUtil.coerceTypes(migrated, true);
   }
 
   /**
@@ -146,6 +159,15 @@ public class Command {
   )
   public Map<String, String> getOriginalProperties() {
     return originalProperties;
+  }
+
+  /**
+   * Returns the original properties for runtime use, with legacy values migrated.
+   * This is what should be used when executing queries or building configs.
+   */
+  @JsonIgnore
+  public Map<String, String> getOriginalPropertiesForExecution() {
+    return ConfigMigrator.migrateOriginalProperties(originalProperties);
   }
 
   public Optional<KsqlPlan> getPlan() {

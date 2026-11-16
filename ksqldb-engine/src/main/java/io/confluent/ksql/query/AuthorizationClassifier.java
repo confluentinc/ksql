@@ -19,8 +19,8 @@ import io.confluent.ksql.query.QueryError.Type;
 import java.util.Objects;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.streams.errors.StreamsException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * {@code AuthorizationClassifier} classifies missing ACLs as user error
@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 public class AuthorizationClassifier implements QueryErrorClassifier {
 
   private static final Logger LOG =
-      LoggerFactory.getLogger(AuthorizationClassifier.class);
+      LogManager.getLogger(AuthorizationClassifier.class);
 
   private final String queryId;
 

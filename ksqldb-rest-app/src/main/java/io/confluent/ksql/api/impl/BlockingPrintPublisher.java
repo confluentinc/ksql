@@ -37,8 +37,8 @@ import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.utils.Bytes;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * A publisher that creates a kafka consumer, consumes a topic for as long as necessary and
@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
  */
 public class BlockingPrintPublisher extends BasePublisher<String> {
 
-  private static final Logger log = LoggerFactory.getLogger(BlockingPrintPublisher.class);
+  private static final Logger log = LogManager.getLogger(BlockingPrintPublisher.class);
   private static final Duration POLL_TIMEOUT = Duration.ofMillis(5000L);
   public static final int SEND_MAX_BATCH_SIZE = 200;
 

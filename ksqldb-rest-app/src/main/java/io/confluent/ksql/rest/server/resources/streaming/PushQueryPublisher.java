@@ -32,13 +32,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @SuppressWarnings("UnstableApiUsage")
 final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
-  private static final Logger log = LoggerFactory.getLogger(PushQueryPublisher.class);
+  private static final Logger log = LogManager.getLogger(PushQueryPublisher.class);
 
   private final ListeningScheduledExecutorService exec;
   private final PushQueryMetadata queryMetadata;

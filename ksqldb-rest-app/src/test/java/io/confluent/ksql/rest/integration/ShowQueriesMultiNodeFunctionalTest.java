@@ -46,7 +46,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
+
+import org.apache.kafka.raft.errors.RaftException;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -94,7 +95,7 @@ public class ShowQueriesMultiNodeFunctionalTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(JAAS_CONFIG)
       .around(REST_APP_0)

@@ -25,7 +25,7 @@ import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PageViewDataProvider.Batch;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.junit.*;
@@ -80,7 +80,7 @@ public class PauseResumeIntegrationTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS);
 
   @Before

@@ -111,17 +111,17 @@ import java.util.stream.Collectors;
 import io.confluent.ksql.rest.entity.ConnectorInfo;
 import io.confluent.ksql.rest.entity.ConnectorStateInfo;
 import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ClientTest extends BaseApiTest {
 
-  protected static final Logger log = LoggerFactory.getLogger(ClientTest.class);
+  protected static final Logger log = LogManager.getLogger(ClientTest.class);
 
   @SuppressWarnings("unchecked")
   protected static final List<String> DEFAULT_COLUMN_NAMES = BaseApiTest.DEFAULT_COLUMN_NAMES.getList();

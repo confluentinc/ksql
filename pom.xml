@@ -160,6 +160,10 @@
         <netty-codec-http2-version>4.1.139.Final</netty-codec-http2-version>
         <jersey-common>3.1.10</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
+        <!-- Unit tests (surefire) fork count: 1C = one JVM per CPU core. Override with -Dsurefire.forkCount=1 to run serially. -->
+        <surefire.forkCount>1C</surefire.forkCount>
+        <!-- Failsafe is skipped by default; modules containing integration tests set this to false. -->
+        <failsafe.skip>true</failsafe.skip>
         <kafka.version>${ce.kafka.version}</kafka.version>
     </properties>
 
@@ -872,6 +876,8 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <rerunFailingTestsCount>3</rerunFailingTestsCount>
+                    <forkCount>${surefire.forkCount}</forkCount>
+                    <reuseForks>true</reuseForks>
                     <systemPropertyVariables>
                         <log4j2.configurationFile>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j2.yaml</log4j2.configurationFile>
                         <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
@@ -893,6 +899,7 @@
                     You can also see (https://issues.apache.org/jira/browse/SUREFIRE-1809)
                     for more details -->
                     <useModulePath>false</useModulePath>
+                    <skip>${failsafe.skip}</skip>
                     <groups>io.confluent.common.utils.IntegrationTest, IntegrationTest</groups>
                     <systemPropertyVariables>
                         <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>

@@ -30,6 +30,7 @@
   <properties>
     <air.main.basedir>${project.parent.basedir}</air.main.basedir>
     <main-class>io.confluent.ksql.test.tools.KsqlTestingTool</main-class>
+    <failsafe.skip>false</failsafe.skip>
   </properties>
 
   <dependencies>

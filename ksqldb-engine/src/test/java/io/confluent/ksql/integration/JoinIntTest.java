@@ -40,7 +40,7 @@ import io.confluent.ksql.util.OrderDataProvider;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -63,7 +63,7 @@ public class JoinIntTest {
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS);
 
   @Rule

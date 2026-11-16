@@ -27,8 +27,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -37,12 +37,12 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Category({IntegrationTest.class})
 public class LagReportingAgentFunctionalTest {
-  private static final Logger LOG = LoggerFactory.getLogger(LagReportingAgentFunctionalTest.class);
+  private static final Logger LOG = LogManager.getLogger(LagReportingAgentFunctionalTest.class);
   private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   static {
@@ -111,7 +111,7 @@ public class LagReportingAgentFunctionalTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(REST_APP_0)
       .around(REST_APP_1);

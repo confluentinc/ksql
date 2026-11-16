@@ -37,10 +37,13 @@ import com.google.protobuf.Message;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
@@ -1227,7 +1230,10 @@ public class RecordFormatterTest {
       final Map<String, String> props = new HashMap<>();
       props.put("schema.registry.url", "localhost:9092");
 
-      return new KafkaAvroSerializer(new MockSchemaRegistryClient(), props);
+      MockSchemaRegistryClient mockSchemaRegistryClient = new MockSchemaRegistryClient(
+          ImmutableList.of(new AvroSchemaProvider()));
+
+      return new KafkaAvroSerializer(mockSchemaRegistryClient, props);
     }
 
     private static Message protobufRecord() {
@@ -1247,7 +1253,10 @@ public class RecordFormatterTest {
       final Map<String, String> props = new HashMap<>();
       props.put("schema.registry.url", "localhost:9092");
 
-      return new KafkaProtobufSerializer<>(new MockSchemaRegistryClient(), props);
+      MockSchemaRegistryClient mockSchemaRegistryClient = new MockSchemaRegistryClient(
+          ImmutableList.of(new ProtobufSchemaProvider()));
+
+      return new KafkaProtobufSerializer<>(mockSchemaRegistryClient, props);
     }
 
     private static Serializer<Object> jsonSrSerializer() {
@@ -1255,7 +1264,11 @@ public class RecordFormatterTest {
       props.put("schema.registry.url", "localhost:9092");
       props.put("json.schema.scan.packages", "io.confluent.ksql.serde.json");
 
-      return new KafkaJsonSchemaSerializer<>(new MockSchemaRegistryClient(), props);
+
+      MockSchemaRegistryClient mockSchemaRegistryClient = new MockSchemaRegistryClient(
+          ImmutableList.of(new JsonSchemaProvider()));
+
+      return new KafkaJsonSchemaSerializer<>(mockSchemaRegistryClient, props);
     }
   }
 

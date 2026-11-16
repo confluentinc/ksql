@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
 import io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.ByteBuffer;
@@ -82,7 +83,8 @@ public class KsqlJsonSchemaDeserializerTest {
   public void before() throws Exception {
     schema = (new JsonSchemaTranslator()).fromConnectSchema(ORDER_SCHEMA.schema());
 
-    schemaRegistryClient = new MockSchemaRegistryClient();
+    schemaRegistryClient = new MockSchemaRegistryClient(ImmutableList.of(
+        new JsonSchemaProvider()));
     schemaRegistryClient.register(SOME_TOPIC, schema);
 
     final KsqlJsonSerdeFactory jsonSerdeFactory =

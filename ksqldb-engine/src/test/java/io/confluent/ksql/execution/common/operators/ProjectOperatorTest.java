@@ -25,9 +25,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.Window;
-import io.confluent.ksql.execution.common.operators.AbstractPhysicalOperator;
-import io.confluent.ksql.execution.common.operators.ProjectOperator;
-import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory.SelectValueMapperFactorySupplier;
@@ -122,7 +119,7 @@ public class ProjectOperatorTest {
     when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
-    when(transformer.transform(A_KEY, row.value(), new PullProcessingContext(12335L)))
+    when(transformer.transform(A_KEY, row.value()))
         .thenReturn(GenericRow.genericRow("k", "a", "b"));
     projectOperator.open();
 
@@ -156,7 +153,7 @@ public class ProjectOperatorTest {
     when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
-    when(transformer.transform(A_KEY, windowedRow.value(), new PullProcessingContext(A_ROWTIME)))
+    when(transformer.transform(A_KEY, windowedRow.value()))
         .thenReturn(GenericRow.genericRow("k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli(), "a", "b"));
     projectOperator.open();
 
@@ -194,7 +191,7 @@ public class ProjectOperatorTest {
     when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
-    when(transformer.transform(any(), any(), any())).thenReturn(GenericRow.genericRow("k", "a", "b"));
+    when(transformer.transform(any(), any())).thenReturn(GenericRow.genericRow("k", "a", "b"));
     projectOperator.open();
 
     // When:
@@ -202,7 +199,7 @@ public class ProjectOperatorTest {
 
     // Then:
     verify(transformer).transform(
-        A_KEY, GenericRow.genericRow("a", "b", 12335L, "k", 12335L, "k"), new PullProcessingContext(12335L));
+        A_KEY, GenericRow.genericRow("a", "b", 12335L, "k", 12335L, "k"));
   }
 
   @Test
@@ -227,7 +224,7 @@ public class ProjectOperatorTest {
     when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
-    when(transformer.transform(any(), any(), any())).thenReturn(GenericRow.genericRow("k", "a", "b"));
+    when(transformer.transform(any(), any())).thenReturn(GenericRow.genericRow("k", "a", "b"));
     projectOperator.open();
 
     // When:
@@ -237,8 +234,8 @@ public class ProjectOperatorTest {
     verify(transformer).transform(
         A_KEY,
         GenericRow.genericRow("a", "b", 12335L, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli(),
-                              12335L, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
-        new PullProcessingContext(12335L));
+                              12335L, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli())
+    );
   }
 
   @Test
@@ -266,7 +263,7 @@ public class ProjectOperatorTest {
     when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
-    when(transformer.transform(A_KEY, row.value(), new PullProcessingContext(12335L)))
+    when(transformer.transform(A_KEY, row.value()))
              .thenReturn(GenericRow.genericRow("k"));
     projectOperator.open();
 
@@ -302,7 +299,7 @@ public class ProjectOperatorTest {
     when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
-    when(transformer.transform(A_KEY, row.value(), new PullProcessingContext(12335L)))
+    when(transformer.transform(A_KEY, row.value()))
         .thenReturn(GenericRow.genericRow("b"));
     projectOperator.open();
 
@@ -338,7 +335,7 @@ public class ProjectOperatorTest {
     when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
-    when(transformer.transform(A_KEY, windowedRow.value(), new PullProcessingContext(12335L)))
+    when(transformer.transform(A_KEY, windowedRow.value()))
         .thenReturn(GenericRow.genericRow(A_WINDOW.start().toEpochMilli()));
     projectOperator.open();
 
@@ -376,7 +373,7 @@ public class ProjectOperatorTest {
     when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
-    when(transformer.transform(A_KEY, row.value(), new PullProcessingContext(12335L)))
+    when(transformer.transform(A_KEY, row.value()))
         .thenReturn(GenericRow.genericRow("k","b"));
     projectOperator.open();
 
@@ -417,8 +414,8 @@ public class ProjectOperatorTest {
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
     when(transformer.transform(
         A_KEY,
-        windowedRow.value(),
-        new PullProcessingContext(12335L)))
+        windowedRow.value()
+    ))
         .thenReturn(GenericRow.genericRow("k", "b"));
     projectOperator.open();
 

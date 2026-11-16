@@ -52,8 +52,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.LagInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Agent responsible for sending and receiving lag information across the cluster and providing
@@ -66,7 +66,7 @@ public final class LagReportingAgent implements HostStatusListener {
   private static final int SERVICE_TIMEOUT_SEC = 2;
   private static final int NUM_THREADS_EXECUTOR = 1;
   private static final int SEND_LAG_DELAY_MS = 100;
-  private static final Logger LOG = LoggerFactory.getLogger(LagReportingAgent.class);
+  private static final Logger LOG = LogManager.getLogger(LagReportingAgent.class);
 
   private final KsqlEngine engine;
   private final ScheduledExecutorService scheduledExecutorService;

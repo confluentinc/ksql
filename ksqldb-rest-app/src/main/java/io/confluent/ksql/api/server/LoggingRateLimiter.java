@@ -26,7 +26,7 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.Pair;
 import java.util.Map;
 import java.util.function.Function;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 public class LoggingRateLimiter {
   // Print "You hit a rate limit" every 5 seconds

@@ -25,8 +25,8 @@ import io.confluent.ksql.tools.migrations.util.ServerVersionUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Command(
     name = InitializeMigrationCommand.INITIALIZE_COMMAND_NAME,
@@ -37,7 +37,7 @@ public class InitializeMigrationCommand extends BaseCommand {
 
   static final String INITIALIZE_COMMAND_NAME = "initialize-metadata";
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(InitializeMigrationCommand.class);
+  private static final Logger LOGGER = LogManager.getLogger(InitializeMigrationCommand.class);
 
   private String createEventStream(final String name, final String topic, final int replicas) {
     return "CREATE STREAM " + name + " (\n"

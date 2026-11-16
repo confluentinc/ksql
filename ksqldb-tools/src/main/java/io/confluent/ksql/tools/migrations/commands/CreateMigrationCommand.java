@@ -37,8 +37,8 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Command(
     name = "create",
@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 )
 public class CreateMigrationCommand extends BaseCommand {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CreateMigrationCommand.class);
+  private static final Logger LOGGER = LogManager.getLogger(CreateMigrationCommand.class);
 
   private static final String INVALID_FILENAME_CHARS_PATTERN = "\\s|/|\\\\|:|\\*|\\?|\"|<|>|\\|";
 

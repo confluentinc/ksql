@@ -104,7 +104,7 @@
     <properties>
         <apache.directory.server.version>2.0.0-M22</apache.directory.server.version>
         <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
-        <apache.httpcomponents.version>5.6.3</apache.httpcomponents.version>
+        <apache.httpcomponents.version>5.6.4</apache.httpcomponents.version>
         <!-- httpclient5 5.0.3 pulled this in transitively; 5.6.3 no longer does,
              and ksqldb-engine's Encode/MD5 UDFs use it directly, so it must be
              declared explicitly now. -->

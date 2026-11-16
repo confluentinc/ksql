@@ -162,6 +162,7 @@
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <!-- Unit tests (surefire) fork count: 1C = one JVM per CPU core. Override with -Dsurefire.forkCount=1 to run serially. -->
         <surefire.forkCount>1C</surefire.forkCount>
+        <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
         <!-- Failsafe is skipped by default; modules containing integration tests set this to false. -->
         <failsafe.skip>true</failsafe.skip>
         <kafka.version>${ce.kafka.version}</kafka.version>
@@ -878,6 +879,9 @@
                     <rerunFailingTestsCount>3</rerunFailingTestsCount>
                     <forkCount>${surefire.forkCount}</forkCount>
                     <reuseForks>true</reuseForks>
+                    <!-- Keep test stdout/stderr off surefire's event pipe: with parallel forks it
+                         corrupts the channel and swallows "Tests run:" lines. -->
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <systemPropertyVariables>
                         <log4j2.configurationFile>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j2.yaml</log4j2.configurationFile>
                         <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
@@ -886,7 +890,7 @@
                     <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
                     <excludedGroups>io.confluent.common.utils.IntegrationTest, IntegrationTest</excludedGroups>
                 </configuration>
-                <version>3.2.5</version>
+                <version>${maven-surefire-plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

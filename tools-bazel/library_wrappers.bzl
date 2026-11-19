@@ -151,6 +151,10 @@ def jvm_junit_test_classes(
         if is_integration:
             # Root pom failsafe: forkedProcessTimeoutInSeconds=3600 (or none).
             args.setdefault("timeout", "eternal")
+
+            # At most multi-threaded-testing.forkCount (3) run at once; the
+            # `integration` pool is sized in .bazelrc.
+            t_tags = t_tags + ["resources:integration:1"]
         t_data = data + args.pop("data", [])
         fqcn = _fqcn(src, package_root)
         simple = src[src.rfind("/") + 1:-len(".java")]

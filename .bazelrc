@@ -34,6 +34,10 @@ test:macos --test_tag_filters=-fails-on-darwin-arm64
 test --test_env=DOCKER_HOST
 test --test_env=TESTCONTAINERS_RYUK_DISABLED=true
 
+# Integration tests (tag `integration`) each take one unit of this pool, so at
+# most 3 run at once, like failsafe's forkCount=3. More starve embedded Kafka.
+test --local_resources=integration=3
+
 # Default read-only remote cache (writes happen only from trusted CI). The
 # --noremote_upload_local_results line ENFORCES read-only client-side.
 common --remote_cache=https://bazel-external.dp.confluent.io:443

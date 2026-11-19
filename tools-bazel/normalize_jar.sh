@@ -4,7 +4,7 @@
 #
 #   normalize_jar.sh <jar>               STRICT: class/resource BYTES verbatim
 #   normalize_jar.sh --structural <jar>  STRUCTURAL: .class files compared by
-#                                        their `javap -c -p` disassembly
+#                                        their `javap -v -p` disassembly
 #
 # Envelope normalized away in both modes:
 #   - META-INF/maven/**            dropped (Maven-injected build metadata)
@@ -15,8 +15,12 @@
 # STRUCTURAL exists because Bazel's javac (java_tools, newer than JDK 17) and
 # Maven's JDK 17 javac emit semantically identical but byte-different class
 # files (constant-pool order, synthetic lambda numbering). It compares the
-# disassembled members + bytecode with lambda$<m>$<n> indices normalized;
-# resources are still compared byte-for-byte. Needs `javap` (JAVAP, JAVA_HOME
+# verbose disassembly (members, bytecode, constant values, annotations,
+# MethodParameters, signatures, class-file version) with constant-pool indices
+# and lambda$<m>$<n> numbering normalized. Debug-only attributes (constant pool
+# listing, SourceFile, LineNumberTable, LocalVariable[Type]Table) and the class
+# attribute count they inflate are dropped.
+# Resources are still compared byte-for-byte. Needs `javap` (JAVAP, JAVA_HOME
 # or PATH).
 set -euo pipefail
 MODE=strict
@@ -58,8 +62,22 @@ if [ "$MODE" = structural ]; then
   # start-ups). Paths stay in the listing so a moved class still diverges.
   ( cd "$WORK" && find . -name '*.class' | LC_ALL=C sort ) > "$WORK.classes"
   if [ -s "$WORK.classes" ]; then
-    ( cd "$WORK" && tr '\n' '\0' < "$WORK.classes" | xargs -0 -n 500 "$JAVAP" -c -p ) \
-      | sed -E 's/lambda\$([A-Za-z0-9_]+)\$[0-9]+/lambda$\1$N/g' > "$WORK/classes.javap"
+    ( cd "$WORK" && tr '\n' '\0' < "$WORK.classes" | xargs -0 -n 500 "$JAVAP" -v -p ) \
+      | awk '
+          /^Classfile |^  Last modified |^  (MD5|SHA-256) checksum |^  Compiled from |^SourceFile: / { next }
+          /^Constant pool:$/ { in_cp = 1; next }
+          in_cp && /^\{$/ { in_cp = 0 }
+          in_cp { next }
+          skip_ind {
+            match($0, /^ */)
+            if (RLENGTH > skip_ind) next
+            skip_ind = 0
+          }
+          /^ +(LineNumberTable|LocalVariableTable|LocalVariableTypeTable):$/ {
+            match($0, /^ */); skip_ind = RLENGTH; next
+          }
+          { print }' \
+      | sed -E -e 's/#[0-9]+/#/g' -e 's/^(  interfaces: .*), attributes: [0-9]+$/\1/' -e 's/lambda\$([A-Za-z0-9_]+)\$[0-9]+/lambda$\1$N/g' > "$WORK/classes.javap"
     cp "$WORK.classes" "$WORK/classes.list"
     ( cd "$WORK" && tr '\n' '\0' < "$WORK.classes" | xargs -0 rm -f )
   fi

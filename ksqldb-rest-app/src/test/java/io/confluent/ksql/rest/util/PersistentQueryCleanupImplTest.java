@@ -35,6 +35,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -60,17 +62,13 @@ public class PersistentQueryCleanupImplTest {
   BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata;
   @Before
   public void setUp() {
-    tempFile = new File("/tmp/cat/");
-    if (!tempFile.exists()){
-      if (!tempFile.mkdirs()) {
-        throw new IllegalStateException(String.format(
-            "Could not create temp directory: %s",
-            tempFile.getAbsolutePath()
-        ));
-      }
+    try {
+      tempFile = Files.createTempDirectory("cat").toFile();
+    } catch (final IOException e) {
+      throw new IllegalStateException("Could not create temp directory", e);
     }
 
-    cleanup = new PersistentQueryCleanupImpl("/tmp/cat/", context, ksqlConfig);
+    cleanup = new PersistentQueryCleanupImpl(tempFile.getAbsolutePath() + "/", context, ksqlConfig);
     when(binPackedPersistentQueryMetadata.getQueryId()).thenReturn(new QueryId("test"));
   }
 

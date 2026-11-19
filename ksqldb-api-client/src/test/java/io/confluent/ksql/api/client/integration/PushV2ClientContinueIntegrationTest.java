@@ -54,6 +54,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.schema.ksql.SqlTimeTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
@@ -124,6 +125,10 @@ public class PushV2ClientContinueIntegrationTest {
   private static final int EVENT_LOOP_POOL_SIZE = 1;
   private static final int WORKER_POOL_SIZE = 10;
 
+  // The test restarts the server and the client reconnects to the same address, so the port must
+  // be stable across restarts: allocate a free one once instead of listening on port 0.
+  private static final int REST_PORT = TestUtils.findFreeLocalPort();
+
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
@@ -131,7 +136,7 @@ public class PushV2ClientContinueIntegrationTest {
       .withProperty("ksql.verticle.instances", EVENT_LOOP_POOL_SIZE)
       .withProperty("ksql.worker.pool.size", WORKER_POOL_SIZE)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:" + REST_PORT)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
       .withProperty(KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withProperty(KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)

@@ -379,7 +379,8 @@ public final class KsqlRestApplication implements Executable {
           pullQueryMetrics,
           queryExecutor,
           securityExtension.getAuthTokenProvider(),
-          configOverrideValidator
+          configOverrideValidator,
+          authorizationValidator
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
           authenticationPlugin, serverState, pullQueryMetrics);
@@ -971,7 +972,9 @@ public final class KsqlRestApplication implements Executable {
         versionChecker::updateLastRequestTime,
         authorizationValidator,
         errorHandler,
-        configOverrideValidator
+        configOverrideValidator,
+        metricCollectors.getMetrics(),
+        metricsTags
     );
 
     final List<KsqlConfigurable> configurables = ImmutableList.of(

@@ -100,9 +100,34 @@ public class ConcurrencyLimiterTest {
     assertThat(getRemaining(metrics, tags), is(1.0));
   }
 
+  @Test
+  public void shouldNotShareRejectCountWithOtherLimiterOnSameMetrics() {
+    // Given: two limiters registered on one Metrics
+    final Metrics metrics = new Metrics();
+    final Map<String, String> tags = Collections.emptyMap();
+    final ConcurrencyLimiter pull = new ConcurrencyLimiter(1, "pull", metrics, tags);
+    new ConcurrencyLimiter(1, "push", metrics, tags);
+
+    // When: only the pull limiter rejects
+    pull.increment();
+    assertThrows(KsqlException.class, pull::increment);
+
+    // Then: only the pull count moves
+    assertThat(getReject(metrics, "pull", tags), is(1.0));
+    assertThat(getReject(metrics, "push", tags), is(0.0));
+  }
+
   private double getReject(final Metrics metrics, final Map<String, String> tags) {
+    return getReject(metrics, "pull", tags);
+  }
+
+  private double getReject(
+      final Metrics metrics,
+      final String operationType,
+      final Map<String, String> tags
+  ) {
     final MetricName rejectMetricName = new MetricName(
-        "pull-concurrency-limit-reject-count",
+        operationType + "-concurrency-limit-reject-count",
         "_confluent-ksql-limits",
         "The number of requests rejected by this limiter",
         tags

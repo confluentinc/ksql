@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.resources;
 
 import static java.util.regex.Pattern.compile;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.api.util.ApiServerUtils;
@@ -79,6 +80,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.regex.PatternSyntaxException;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.logging.log4j.LogManager;
@@ -111,6 +113,8 @@ public class KsqlResource implements KsqlConfigurable {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final ConfigOverrideValidator configOverrideValidator;
   private final Supplier<String> commandRunnerWarning;
+  private final Metrics metrics;
+  private final Map<String, String> metricsTags;
   private RequestValidator validator;
   private RequestHandler handler;
   private final Errors errorHandler;
@@ -124,7 +128,9 @@ public class KsqlResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final ConfigOverrideValidator configOverrideValidator
+      final ConfigOverrideValidator configOverrideValidator,
+      final Metrics metrics,
+      final Map<String, String> metricsTags
   ) {
     this(
         ksqlEngine,
@@ -135,10 +141,13 @@ public class KsqlResource implements KsqlConfigurable {
         authorizationValidator,
         errorHandler,
         configOverrideValidator,
-        commandRunner::getCommandRunnerDegradedWarning
+        commandRunner::getCommandRunnerDegradedWarning,
+        metrics,
+        metricsTags
     );
   }
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   KsqlResource(
       final KsqlEngine ksqlEngine,
       final CommandRunner commandRunner,
@@ -148,8 +157,11 @@ public class KsqlResource implements KsqlConfigurable {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final ConfigOverrideValidator configOverrideValidator,
-      final Supplier<String> commandRunnerWarning
+      final Supplier<String> commandRunnerWarning,
+      final Metrics metrics,
+      final Map<String, String> metricsTags
   ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
     this.distributedCmdResponseTimeout =
@@ -164,6 +176,8 @@ public class KsqlResource implements KsqlConfigurable {
         Objects.requireNonNull(configOverrideValidator, "configOverrideValidator");
     this.commandRunnerWarning =
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
+    this.metrics = Objects.requireNonNull(metrics, "metrics");
+    this.metricsTags = ImmutableMap.copyOf(Objects.requireNonNull(metricsTags, "metricsTags"));
   }
 
   @Override
@@ -201,7 +215,9 @@ public class KsqlResource implements KsqlConfigurable {
             authorizationValidator,
             new ValidatedCommandFactory(),
             errorHandler,
-            commandRunnerWarning
+            commandRunnerWarning,
+            metrics,
+            metricsTags
         ),
         ksqlEngine,
         new DefaultCommandQueueSync(

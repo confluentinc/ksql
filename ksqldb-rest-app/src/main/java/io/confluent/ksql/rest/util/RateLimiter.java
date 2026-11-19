@@ -36,7 +36,8 @@ public class RateLimiter {
       final Map<String, String> metricsTags) {
     this.rateLimiter = com.google.common.util.concurrent.RateLimiter.create(permitsPerSecond);
 
-    this.rejectSensor = metrics.sensor("pull-rate-limit-rejects");
+    // Per-instance sensor name: see SlidingWindowRateLimiter.
+    this.rejectSensor = metrics.sensor(metricNamespace + "-rate-limit-rejects");
     rejectSensor.add(
         new MetricName(
             metricNamespace + "-rate-limit-reject-count",

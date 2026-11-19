@@ -300,6 +300,36 @@ public class PullQueryFunctionalTest {
         ImmutableList.of(key2, 1)));
   }
 
+  @Test
+  public void shouldIgnoreDebugRequestOnPublicListener() {
+    // Given:
+    final String key0 = USER_PROVIDER.getStringKey(0);
+    final String key1 = USER_PROVIDER.getStringKey(1);
+    final String key2 = USER_PROVIDER.getStringKey(2);
+
+    makeAdminRequest(
+        "CREATE TABLE " + output + " AS"
+            + " SELECT " + USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " GROUP BY " + USER_PROVIDER.key() + ";"
+    );
+
+    waitForTableRows();
+
+    // Rows for these keys live on both nodes, so this covers local and forwarded reads.
+    final String sql = "SELECT * FROM " + output + " WHERE USERID IN ('"
+        + key0 + "'," + "'" + key1 + "'," + "'" + key2 + "');";
+
+    // When:
+    final List<StreamedRow> rows = RestIntegrationTestUtil.makeDebugQueryRequest(
+        REST_APP_0.buildKsqlClient(validCreds()), sql);
+
+    // Then:
+    assertThat(rows, hasSize(HEADER + 3));
+    for (final StreamedRow row : rows.subList(1, rows.size())) {
+      assertThat(row.getSourceHost(), is(Optional.empty()));
+    }
+  }
+
   @SuppressWarnings("unchecked")
   @Test
   public void shouldGetMultipleWindowedKeysFromBothNodes() {

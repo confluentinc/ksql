@@ -37,6 +37,7 @@ import io.confluent.ksql.rest.integration.QueryStreamSubscriber;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -74,11 +75,13 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
+  private static final int REST_PORT = TestUtils.findFreeLocalPort();
+
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8088")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:" + REST_PORT)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + REST_PORT)
       .withProperty(KSQL_QUERY_PUSH_V2_ENABLED , true)
       .withProperty(KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG , 1)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)

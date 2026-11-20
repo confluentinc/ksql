@@ -311,15 +311,15 @@
     "io.swagger.core.v3:swagger-annotations": -1107095097,
     "io.swagger.core.v3:swagger-annotations-jakarta": 1622443338,
     "io.swagger:swagger-annotations": -132875547,
-    "io.vertx:vertx-auth-common": -931015887,
-    "io.vertx:vertx-bridge-common": 324656944,
-    "io.vertx:vertx-codegen": -2063720188,
-    "io.vertx:vertx-core": -1061365598,
-    "io.vertx:vertx-dropwizard-metrics": -767919725,
-    "io.vertx:vertx-uri-template": -634079554,
-    "io.vertx:vertx-web": -1762314027,
-    "io.vertx:vertx-web-client": -545310489,
-    "io.vertx:vertx-web-common": -1292773625,
+    "io.vertx:vertx-auth-common": -1807587762,
+    "io.vertx:vertx-bridge-common": -551914931,
+    "io.vertx:vertx-codegen": 1354675233,
+    "io.vertx:vertx-core": -1937937473,
+    "io.vertx:vertx-dropwizard-metrics": -1644491600,
+    "io.vertx:vertx-uri-template": -1510651429,
+    "io.vertx:vertx-web": 1656081394,
+    "io.vertx:vertx-web-client": -1421882364,
+    "io.vertx:vertx-web-common": 2125621796,
     "io.yokota:mbknor-jackson-jsonschema-java8": -12046035,
     "it.unimi.dsi:fastutil": 139013013,
     "jakarta.activation:jakarta.activation-api": 1420293869,
@@ -363,7 +363,7 @@
     "org.apache.commons:commons-pool2": -501602100,
     "org.apache.commons:commons-text": -1491671838,
     "org.apache.httpcomponents.client5:httpclient5": 378371973,
-    "org.apache.httpcomponents.client5:httpclient5-fluent": 900976255,
+    "org.apache.httpcomponents.client5:httpclient5-fluent": -906478208,
     "org.apache.httpcomponents.core5:httpcore5": -1961262630,
     "org.apache.httpcomponents.core5:httpcore5-h2": 415096811,
     "org.apache.httpcomponents:httpclient": 1643860045,
@@ -1131,24 +1131,24 @@
     "io.swagger.core.v3:swagger-annotations:jar:sources": -940974988,
     "io.swagger:swagger-annotations": -1180168590,
     "io.swagger:swagger-annotations:jar:sources": -1873449065,
-    "io.vertx:vertx-auth-common": 1350956693,
-    "io.vertx:vertx-auth-common:jar:sources": -217739654,
-    "io.vertx:vertx-bridge-common": 1954614699,
-    "io.vertx:vertx-bridge-common:jar:sources": -1781726034,
-    "io.vertx:vertx-codegen": -731644334,
-    "io.vertx:vertx-codegen:jar:sources": -573973823,
-    "io.vertx:vertx-core": 725393589,
-    "io.vertx:vertx-core:jar:sources": 1764679251,
-    "io.vertx:vertx-dropwizard-metrics": -1172706609,
-    "io.vertx:vertx-dropwizard-metrics:jar:sources": -1371431894,
-    "io.vertx:vertx-uri-template": 1971137243,
-    "io.vertx:vertx-uri-template:jar:sources": -1034642423,
-    "io.vertx:vertx-web": -2087984078,
-    "io.vertx:vertx-web-client": -442890600,
-    "io.vertx:vertx-web-client:jar:sources": 1541092766,
-    "io.vertx:vertx-web-common": 1381318496,
-    "io.vertx:vertx-web-common:jar:sources": -706593196,
-    "io.vertx:vertx-web:jar:sources": -980469767,
+    "io.vertx:vertx-auth-common": -844483961,
+    "io.vertx:vertx-auth-common:jar:sources": -1467978423,
+    "io.vertx:vertx-bridge-common": 1149694835,
+    "io.vertx:vertx-bridge-common:jar:sources": -1801571801,
+    "io.vertx:vertx-codegen": -1772793064,
+    "io.vertx:vertx-codegen:jar:sources": -2127170540,
+    "io.vertx:vertx-core": -1886859261,
+    "io.vertx:vertx-core:jar:sources": -1978768834,
+    "io.vertx:vertx-dropwizard-metrics": -465548204,
+    "io.vertx:vertx-dropwizard-metrics:jar:sources": 107581619,
+    "io.vertx:vertx-uri-template": 1011202087,
+    "io.vertx:vertx-uri-template:jar:sources": -1096308010,
+    "io.vertx:vertx-web": 886769983,
+    "io.vertx:vertx-web-client": -721567715,
+    "io.vertx:vertx-web-client:jar:sources": -247787791,
+    "io.vertx:vertx-web-common": -402263247,
+    "io.vertx:vertx-web-common:jar:sources": -78905826,
+    "io.vertx:vertx-web:jar:sources": -2027158349,
     "io.yokota:mbknor-jackson-jsonschema-java8": 610176649,
     "io.yokota:mbknor-jackson-jsonschema-java8:jar:sources": 202983630,
     "it.unimi.dsi:fastutil": 1383506768,
@@ -1238,8 +1238,8 @@
     "org.apache.commons:commons-text": -2048373403,
     "org.apache.commons:commons-text:jar:sources": -1543592591,
     "org.apache.httpcomponents.client5:httpclient5": -858827692,
-    "org.apache.httpcomponents.client5:httpclient5-fluent": -1766646295,
-    "org.apache.httpcomponents.client5:httpclient5-fluent:jar:sources": -1850023175,
+    "org.apache.httpcomponents.client5:httpclient5-fluent": 1486149907,
+    "org.apache.httpcomponents.client5:httpclient5-fluent:jar:sources": -1604763067,
     "org.apache.httpcomponents.client5:httpclient5:jar:sources": -398039687,
     "org.apache.httpcomponents.core5:httpcore5": -1401550974,
     "org.apache.httpcomponents.core5:httpcore5-h2": 643281451,
@@ -3652,66 +3652,66 @@
     },
     "io.vertx:vertx-auth-common": {
       "shasums": {
-        "jar": "ea3074af4de22fb2e560d4fc0e048eb2d0189eb9a94312b90f39bee597d79d11",
-        "sources": "0b58456a45a07cd2e80e1d3bb5e89de2d83780f48a899d8a3c70c99615364354"
+        "jar": "5103b6ce5121aa783707278b4ec08a19a0405d87b91dced1d9f6054d7ffb5dc1",
+        "sources": "680ead315ce977f2276b8545f81957964d70d8daea04678e6fb1c20811975f09"
       },
-      "version": "4.5.27"
+      "version": "4.5.35"
     },
     "io.vertx:vertx-bridge-common": {
       "shasums": {
-        "jar": "9153607bfe24888ba3aff7da56a5fce3e40e9471ba1f933005c1f8a14ff2389a",
-        "sources": "25ac749494cdb788a44c77a74300868962c13d922faba2863ab9961c98b2af80"
+        "jar": "a004fef3622ce6db8ba11c502f2c752dd0975eaf7c8e940e71c4c4ca0ccbf4cd",
+        "sources": "7d4c6f167f63cc948bff7917981595df9ff00ec1e6c07972bf1b4dafa7b8ff4d"
       },
-      "version": "4.5.27"
+      "version": "4.5.35"
     },
     "io.vertx:vertx-codegen": {
       "shasums": {
-        "jar": "cbf903766ea5ecbdf37ea5c7e8c9d2d2f5470f016451781622de717e8ef95e1b",
-        "sources": "4fd56547882364d5edfe65c968407fcc5e5f6ef40c83c5127aa568bd060e2082"
+        "jar": "b82fe8fe7324af7a37fd41940c228af99ea9c400e96ac55d0cfe8016b85b5337",
+        "sources": "297674b9325437d51e46f52a8166d6e4dbebe90307e51e03df68d04ea8019e92"
       },
-      "version": "4.5.27"
+      "version": "4.5.35"
     },
     "io.vertx:vertx-core": {
       "shasums": {
-        "jar": "8f411bfed688e27a9fdd01a0d86f19e37b91845af76f1a4a6810cabc61f3cd46",
-        "sources": "496bf727478e78d01ff1a581b60c97caf79a5776deb40f1518bb423448c1f192"
+        "jar": "1a274ba3739dc72506d5e801a8337ab734e07fbfd48ece7e77a518fbf40cea9a",
+        "sources": "20c8c1891d98de3dc670aaaa03f9cb640d7e0fd42cc32277e86be585e41f24e4"
       },
-      "version": "4.5.27"
+      "version": "4.5.35"
     },
     "io.vertx:vertx-dropwizard-metrics": {
       "shasums": {
-        "jar": "37e4de8c141384275cb47c279d2061f761af40eec2dbac2316175a66f83acbc4",
-        "sources": "811321b8119c125d5d73c8aa44300b72cb54f3763bd850df7ee7070beb1d9b3c"
+        "jar": "6ef57cb532c7f46637c080b1815a2218f23c5d633c2a6b13524d64c18192e82c",
+        "sources": "478c8586cdfdb887e82aee6d2e5dcd165b027799feacc85ee02aec52a7a4277d"
       },
-      "version": "4.5.27"
+      "version": "4.5.35"
     },
     "io.vertx:vertx-uri-template": {
       "shasums": {
-        "jar": "7af45563da6df8ef48ca0ca77cd8f75455858155f7c154b2f925c988752a2d35",
-        "sources": "6a7d4d4aae8b47bc2c453f8025318484001428726fe7afa62765adcdb1afb8b4"
+        "jar": "4813ea6faa74899e5f317ad223608fef905c2b83cee9eca76393e9e2853f3b4d",
+        "sources": "cf4b54cfb81579ccc4f9cd7ee6ecfbba4678ed8b093c8711bb68bf6ca2be4246"
       },
-      "version": "4.5.27"
+      "version": "4.5.35"
     },
     "io.vertx:vertx-web": {
       "shasums": {
-        "jar": "14102106068fdeb3869b951fba73ac18d2a604d0e7445f9702416a8af33fa2ee",
-        "sources": "a491c29a2ffe8b29e3caec0449c20ba7a5ea3b6b4516ee08bd0c825a511103c1"
+        "jar": "a8d9d06554e23286edb542d9adf15d057bda0399455a8f04ceb27e39bea1a0ac",
+        "sources": "1cdc976d92f1acb0033d608072ec5f628a8788198b6b420a4c26de03d331c9e3"
       },
-      "version": "4.5.27"
+      "version": "4.5.35"
     },
     "io.vertx:vertx-web-client": {
       "shasums": {
-        "jar": "d984144a11e96516d81267b8cf5479966e363d7380ee8071a5ecc6471fe72108",
-        "sources": "9e588c4b3a16c47f47a6f69c6df0ce0839e3c0e110a7aa74f993535af4d07fdb"
+        "jar": "57ef54f7f385d5e43b7b8cb2847c42ebcf259f2a6972a37aa3dc80ff4f2799ec",
+        "sources": "8fede6767267e7889db9cdb36a7bcea573660310d2931641651dcea7aa61fa09"
       },
-      "version": "4.5.27"
+      "version": "4.5.35"
     },
     "io.vertx:vertx-web-common": {
       "shasums": {
-        "jar": "44e3ad1b98e39e8b2a16f79d9455f1e9fdb5af986339ddb8095ff5043de3c2f2",
-        "sources": "b41c369dad3e9d1051bd0a79b780ce85b98d35c78478ce9f9239aabacd32d7f8"
+        "jar": "e6938a7c555ae87ccde10af71cfb264483ea7f952e7d7724e4196bef21cec64d",
+        "sources": "8cab4010727c4e6db2beec50f816e25f0cd609a92888e9d886f56be59e42f907"
       },
-      "version": "4.5.27"
+      "version": "4.5.35"
     },
     "io.yokota:mbknor-jackson-jsonschema-java8": {
       "shasums": {
@@ -4030,10 +4030,10 @@
     },
     "org.apache.httpcomponents.client5:httpclient5-fluent": {
       "shasums": {
-        "jar": "6a7d73f63751d0146f88d16cc55bfb7bcbef95c25507a91cdadecbfdab0a1915",
-        "sources": "a992f3e32c6136cc7afab8e11ecfd34e6fdfcc0744b3baac7c0a0cd0b3221e1a"
+        "jar": "8bdc26a05e9fcb79cb769ab933923482de79dacbd6b224d69297a45089ebfdcc",
+        "sources": "f38e34cc6b6fad9798ab767b5bc69901ed47af0e9b352c013b85b4a45d02fd5a"
       },
-      "version": "5.6.3"
+      "version": "5.6.4"
     },
     "org.apache.httpcomponents.core5:httpcore5": {
       "shasums": {
@@ -7192,6 +7192,7 @@
       "io.netty:netty-handler-proxy",
       "io.netty:netty-resolver",
       "io.netty:netty-resolver-dns",
+      "io.netty:netty-tcnative-classes",
       "io.netty:netty-transport"
     ],
     "io.vertx:vertx-dropwizard-metrics": [

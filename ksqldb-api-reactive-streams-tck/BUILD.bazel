@@ -1,0 +1,32 @@
+load("//tools-bazel:ksql_defs.bzl", "KSQL_DUMMY_LICENSE_FIRST", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS")
+load("//tools-bazel:library_wrappers.bzl", "java_library", "jvm_junit_test_classes")
+
+# Reactive-streams TCK verifications are TestNG (the pom swaps surefire to
+# surefire-testng); here they run on the JUnit Platform via testng-engine. The
+# module has no main sources; its (empty) jar keeps publishing from Maven.
+java_library(
+    name = "ksqldb-api-reactive-streams-tck-tests",
+    testonly = True,
+    srcs = glob(["src/test/java/**/*.java"]),
+    deps = KSQL_PARENT_DEPS + [
+        "//ksqldb-common",
+        "//ksqldb-engine",
+        "//ksqldb-rest-app",
+        "//ksqldb-test-util",
+        "@maven//:io_vertx_vertx_core",
+        "@maven//:junit_junit",
+        "@maven//:org_reactivestreams_reactive_streams",
+        "@maven//:org_reactivestreams_reactive_streams_tck",
+        "@maven//:org_testng_testng",
+    ],
+)
+
+jvm_junit_test_classes(
+    name = "ksqldb-api-reactive-streams-tck-test-suite",
+    classpath_first = KSQL_DUMMY_LICENSE_FIRST,
+    data = KSQL_TEST_DATA,
+    jvm_flags = KSQL_TEST_JVM_FLAGS,
+    test_lib = ":ksqldb-api-reactive-streams-tck-tests",
+    test_srcs = glob(["src/test/java/**/*Test.java"]),
+    runtime_deps = KSQL_TEST_RUNTIME_DEPS + ["@maven//:org_junit_support_testng_engine"],
+)

@@ -1,0 +1,11 @@
+load("@aspect_rules_lint//format:defs.bzl", "format_multirun")
+
+# Starlark-only for the migration. google-java-format is intentionally deferred
+# to a follow-up: common never used it under Maven, so applying it would rewrite
+# all ~67 Java files and bury the build-migration diff (skill Phase-6 escape
+# hatch). Wire `java = ...` in the follow-up PR.
+format_multirun(
+    name = "format",
+    starlark = "@buildifier_prebuilt//:buildifier",
+    visibility = ["//visibility:public"],
+)

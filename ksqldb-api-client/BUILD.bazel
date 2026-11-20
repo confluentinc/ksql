@@ -89,7 +89,12 @@ jvm_junit_test_classes(
     jvm_flags = KSQL_TEST_JVM_FLAGS,
     per_test_args = {
         # Keycloak via Testcontainers (IdentityProviderService): needs a Docker daemon.
-        "src/test/java/io/confluent/ksql/api/client/ClientOAuthTest.java": {"tags": ["requires-docker"]},
+        # A cold Docker cache pulls the image first, which can outlast `medium`'s
+        # 300 s; surefire sets no fork timeout.
+        "src/test/java/io/confluent/ksql/api/client/ClientOAuthTest.java": {
+            "tags": ["requires-docker"],
+            "timeout": "eternal",
+        },
     },
     test_lib = ":ksqldb-api-client-tests",
     test_srcs = [

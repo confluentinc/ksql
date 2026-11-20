@@ -26,6 +26,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
+import io.vertx.ext.auth.authentication.AuthenticationProvider;
 import io.vertx.ext.auth.authorization.Authorization;
 import io.vertx.ext.auth.authorization.Authorizations;
 import io.vertx.ext.auth.authorization.RoleBasedAuthorization;
@@ -40,7 +41,7 @@ import org.eclipse.jetty.security.jaas.JAASLoginService;
 /**
  * Authentication provider that checks credentials specified in the JAAS config.
  */
-public class JaasAuthProvider implements AuthProvider {
+public class JaasAuthProvider implements AuthenticationProvider {
 
   private static final Logger LOG = LogManager.getLogger(JaasAuthProvider.class);
 
@@ -152,6 +153,7 @@ public class JaasAuthProvider implements AuthProvider {
         throw new UnsupportedOperationException();
       }
 
+      @SuppressWarnings("deprecation")
       @Override
       public User isAuthorized(
           final Authorization authority,
@@ -165,6 +167,7 @@ public class JaasAuthProvider implements AuthProvider {
         throw new UnsupportedOperationException();
       }
 
+      @SuppressWarnings("deprecation")
       @Override
       public void setAuthProvider(final AuthProvider authProvider) {
         throw new UnsupportedOperationException();

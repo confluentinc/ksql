@@ -84,7 +84,7 @@ public class StringToTimestampParser {
     final ZoneId parsedZone = parsed.query(TemporalQueries.zone());
 
     ZonedDateTime resolved = DEFAULT_ZONED_DATE_TIME.apply(
-        ObjectUtils.defaultIfNull(parsedZone, zoneId));
+        ObjectUtils.getIfNull(parsedZone, zoneId));
 
     for (final TemporalField override : values) {
       if (parsed.isSupported(override)) {

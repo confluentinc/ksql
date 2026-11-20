@@ -29,7 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.cfg.JsonNodeFeature;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.annotations.VisibleForTesting;
@@ -57,7 +57,7 @@ public final class RecordNode {
   private static final ObjectMapper objectMapper = new ObjectMapper()
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
       .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
-      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
+      .configure(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES, false);
 
   private static final SchemaTranslator protobufSchemaTranslator =
       (new ProtobufFormat()).getSchemaTranslator(ImmutableMap.of());

@@ -166,7 +166,7 @@ public class TestCountThenEstimate {
 
     @Test
     public void testHyperLogLogSerialization() throws IOException, ClassNotFoundException {
-        CountThenEstimate cte = new CountThenEstimate(3, new HyperLogLog.Builder(0.05));
+        CountThenEstimate cte = new CountThenEstimate(3, HyperLogLog.Builder.withRsd(0.05));
         CountThenEstimate clone = new CountThenEstimate(cte.getBytes());
         assertCountThenEstimateEquals(cte, clone);
 
@@ -206,7 +206,7 @@ public class TestCountThenEstimate {
 
     @Test
     public void testAdaptiveCountingSerialization_withHyperLogLog() throws IOException, ClassNotFoundException {
-        CountThenEstimate cte = new CountThenEstimate(3, new HyperLogLog.Builder(0.01));
+        CountThenEstimate cte = new CountThenEstimate(3, HyperLogLog.Builder.withRsd(0.01));
         CountThenEstimate clone = new CountThenEstimate(cte.getBytes());
         assertCountThenEstimateEquals(cte, clone);
 

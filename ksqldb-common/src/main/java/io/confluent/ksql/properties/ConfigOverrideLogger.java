@@ -90,6 +90,10 @@ public final class ConfigOverrideLogger {
           value -> between(value, 0, 2_097_152))
       .put(STREAMS + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
           value -> between(value, 0, 2_097_152))
+      .put(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG,
+          value -> between(value, 0, 2_097_152))
+      .put(STREAMS + StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG,
+          value -> between(value, 0, 2_097_152))
       .put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, value -> between(value, 1_024, 8_388_608))
       .put(STREAMS + ProducerConfig.MAX_REQUEST_SIZE_CONFIG,
           value -> between(value, 1_024, 8_388_608))

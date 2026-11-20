@@ -27,8 +27,8 @@ import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.streams.errors.DeserializationExceptionHandler.DeserializationHandlerResponse;
-import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.errors.DeserializationExceptionHandler.Result;
+import org.apache.kafka.streams.errors.ErrorHandlerContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,7 +43,7 @@ public class LogMetricAndContinueExceptionHandlerTest {
   @Mock
   private StreamsErrorCollector streamsErrorCollector;
   @Mock
-  private ProcessorContext context;
+  private ErrorHandlerContext context;
   @Mock
   private ConsumerRecord<byte[], byte[]> record;
 
@@ -59,31 +59,31 @@ public class LogMetricAndContinueExceptionHandlerTest {
   @Test
   public void shouldCallErrorCollector() {
     when(record.topic()).thenReturn("test");
-    exceptionHandler.handle(context, record, mock(Exception.class));
+    exceptionHandler.handleError(context, record, mock(Exception.class));
     verify(streamsErrorCollector).recordError("test");
   }
 
   @Test
   public void shouldReturnContinueForRegularExceptions() {
-    assertThat(exceptionHandler.handle(context, record, mock(Exception.class)),
-        equalTo(DeserializationHandlerResponse.CONTINUE));
+    assertThat(exceptionHandler.handleError(context, record, mock(Exception.class)).result(),
+        equalTo(Result.RESUME));
   }
 
   @Test
   public void shouldReturnFailForAuthorizationExceptions() {
-    assertThat(exceptionHandler.handle(context, record,
-            new Exception("", new RestClientException("", 403, 40301))),
-        equalTo(DeserializationHandlerResponse.FAIL));
+    assertThat(exceptionHandler.handleError(context, record,
+            new Exception("", new RestClientException("", 403, 40301))).result(),
+        equalTo(Result.FAIL));
   }
 
   @Test
   public void shouldReturnContinueForSelfReferencingExceptions() {
-    assertThat(exceptionHandler.handle(context, record, new Exception() {
+    assertThat(exceptionHandler.handleError(context, record, new Exception() {
       @Override
       public synchronized Throwable getCause() {
         return this;
       }
-    }), equalTo(DeserializationHandlerResponse.CONTINUE));
+    }).result(), equalTo(Result.RESUME));
   }
 
 }

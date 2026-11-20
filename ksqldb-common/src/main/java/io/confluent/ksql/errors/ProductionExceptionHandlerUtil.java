@@ -24,6 +24,7 @@ import java.util.Objects;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.errors.ErrorHandlerContext;
 import org.apache.kafka.streams.errors.ProductionExceptionHandler;
 
 public final class ProductionExceptionHandlerUtil {
@@ -43,8 +44,11 @@ public final class ProductionExceptionHandlerUtil {
     private ProcessingLogger logger;
 
     @Override
-    public ProductionExceptionHandlerResponse handle(
-        final ProducerRecord<byte[], byte[]> record, final Exception exception) {
+    public Response handleError(
+        final ErrorHandlerContext context,
+        final ProducerRecord<byte[], byte[]> record,
+        final Exception exception
+    ) {
       logger.error(new ProductionError(exception.getMessage()));
       return getResponse();
     }
@@ -58,7 +62,7 @@ public final class ProductionExceptionHandlerUtil {
       this.logger = (ProcessingLogger) logger;
     }
 
-    abstract ProductionExceptionHandlerResponse getResponse();
+    abstract Response getResponse();
   }
 
   public static final class ProductionError implements ProcessingLogger.ErrorMessage {
@@ -105,8 +109,8 @@ public final class ProductionExceptionHandlerUtil {
       extends LogAndXProductionExceptionHandler {
 
     @Override
-    ProductionExceptionHandlerResponse getResponse() {
-      return ProductionExceptionHandlerResponse.FAIL;
+    Response getResponse() {
+      return Response.fail();
     }
   }
 
@@ -114,8 +118,8 @@ public final class ProductionExceptionHandlerUtil {
       extends LogAndXProductionExceptionHandler {
 
     @Override
-    ProductionExceptionHandlerResponse getResponse() {
-      return ProductionExceptionHandlerResponse.CONTINUE;
+    Response getResponse() {
+      return Response.resume();
     }
   }
 }

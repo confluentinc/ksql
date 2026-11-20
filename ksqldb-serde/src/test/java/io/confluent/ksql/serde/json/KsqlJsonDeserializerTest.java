@@ -33,10 +33,10 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.cfg.JsonNodeFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.IntNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.ser.std.DateSerializer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -123,7 +123,7 @@ public class KsqlJsonDeserializerTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true))
+      .configure(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES, false)
       .registerModule(new SimpleModule()
           .addSerializer(java.sql.Time.class, new DateSerializer())
           .addSerializer(java.sql.Date.class, new EpochDaySerializer())

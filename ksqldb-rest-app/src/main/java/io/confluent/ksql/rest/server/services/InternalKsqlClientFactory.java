@@ -75,7 +75,7 @@ public final class InternalKsqlClientFactory {
           VertxSslOptionsFactory.getJksTrustStoreOptions(clientProps);
 
       if (trustStoreOptions.isPresent()) {
-        httpClientOptions.setTrustStoreOptions(trustStoreOptions.get());
+        httpClientOptions.setTrustOptions(trustStoreOptions.get());
 
         final Optional<JksOptions> keyStoreOptions =
             VertxSslOptionsFactory.buildJksKeyStoreOptions(
@@ -84,7 +84,7 @@ public final class InternalKsqlClientFactory {
                     clientProps.get(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG))
             );
 
-        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyStoreOptions(options));
+        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyCertOptions(options));
       }
 
       return httpClientOptions;

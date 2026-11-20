@@ -930,7 +930,7 @@ public class ClientImpl implements Client {
             clientOptions.getTrustStorePassword()
         );
 
-        options = options.setTrustStoreOptions(jksOptions);
+        options = options.setTrustOptions(jksOptions);
       }
     }
     if (!clientOptions.getKeyStore().isEmpty()) {
@@ -954,7 +954,7 @@ public class ClientImpl implements Client {
             Optional.of(clientOptions.getKeyAlias())
         );
 
-        options = options.setKeyStoreOptions(jksOptions);
+        options = options.setKeyCertOptions(jksOptions);
       }
     }
     return vertx.createHttpClient(options);

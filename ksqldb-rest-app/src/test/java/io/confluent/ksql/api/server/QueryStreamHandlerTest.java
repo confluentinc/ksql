@@ -44,6 +44,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.net.SocketAddress;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Collections;
 import java.util.List;
@@ -91,6 +92,8 @@ public class QueryStreamHandlerTest {
   @Mock
   private RoutingContext routingContext;
   @Mock
+  private RequestBody requestBody;
+  @Mock
   private QueryPublisher publisher;
   @Mock
   private PushQueryHolder pushQueryHolder;
@@ -134,7 +137,8 @@ public class QueryStreamHandlerTest {
   }
 
   private void givenRequest(final QueryStreamArgs req) {
-    when(routingContext.getBody()).thenReturn(ServerUtils.serializeObject(req));
+    when(routingContext.body()).thenReturn(requestBody);
+    when(requestBody.buffer()).thenReturn(ServerUtils.serializeObject(req));
   }
 
   @Test

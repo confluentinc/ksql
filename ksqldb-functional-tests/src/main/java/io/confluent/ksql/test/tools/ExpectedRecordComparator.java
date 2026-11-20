@@ -89,7 +89,7 @@ public final class ExpectedRecordComparator {
       return false;
     }
 
-    final Iterator<Entry<String, JsonNode>> fields = expected.fields();
+    final Iterator<Entry<String, JsonNode>> fields = expected.properties().iterator();
     while (fields.hasNext()) {
       final Entry<String, JsonNode> field = fields.next();
 

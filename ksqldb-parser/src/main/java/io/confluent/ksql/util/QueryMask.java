@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 public final class QueryMask {
 
@@ -71,10 +72,10 @@ public final class QueryMask {
        Regex matches sequences of characters that are not in '(' ',' ';' ')' and are not be followed
        by a '(' anywhere further down the string (since VALUES is always last in a statement).
      */
-    if (StringUtils.indexOfIgnoreCase(query.replaceAll("\\s+", ""), ")VALUES(") < 0) {
+    if (Strings.CI.indexOf(query.replaceAll("\\s+", ""), ")VALUES(") < 0) {
       return query;
     }
-    final int valueIdx = StringUtils.indexOfIgnoreCase(query, "VALUES");
+    final int valueIdx = Strings.CI.indexOf(query, "VALUES");
 
     final StringBuffer sb = new StringBuffer();
     final Pattern pattern = Pattern.compile("([^(,;)]+)(?!.*\\()",

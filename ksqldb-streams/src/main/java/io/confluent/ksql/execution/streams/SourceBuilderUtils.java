@@ -466,11 +466,19 @@ final class SourceBuilderUtils {
       }
 
       if (pseudoColumnVersion >= SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
-        final RecordMetadata recordMetadata = processorContext.recordMetadata().get();
-        final int partition = recordMetadata.partition();
-        final long offset = recordMetadata.offset();
-        row.append(partition);
-        row.append(offset);
+        // processorContext.recordMetadata() returns Optional.empty() for records produced from a
+        // punctuator or during state-restore replay; without this guard the .get() throws
+        // NoSuchElementException, which escapes into the StreamThread's uncaught-exception
+        // handler and kills the thread. Emit -1 sentinels so downstream nullable-column
+        // semantics still produce a row.
+        final Optional<RecordMetadata> recordMetadata = processorContext.recordMetadata();
+        if (recordMetadata.isPresent()) {
+          row.append(recordMetadata.get().partition());
+          row.append(recordMetadata.get().offset());
+        } else {
+          row.append(-1);
+          row.append(-1L);
+        }
       }
 
       row.appendAll(keyColumns);

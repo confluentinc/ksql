@@ -41,6 +41,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.ddl.commands.CreateSourceFactory.SerdeFeaturessSupplier;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -184,7 +185,6 @@ public class CreateSourceFactoryTest {
   @Before
   public void before() {
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
-    when(topicClient.isTopicExists(any())).thenReturn(true);
     when(keySerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(keySerde);
     when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
@@ -529,7 +529,9 @@ public class CreateSourceFactoryTest {
   @Test
   public void shouldThrowIfTopicDoesNotExistForStream() {
     // Given:
-    when(topicClient.isTopicExists(any())).thenReturn(false);
+    when(topicClient.describeTopic(TOPIC_NAME)).thenThrow(new KafkaResponseGetFailedException(
+        "Failed to Describe Kafka Topic(s): " + TOPIC_NAME,
+        new org.apache.kafka.common.errors.UnknownTopicOrPartitionException("unknown topic")));
     final CreateStream statement =
         new CreateStream(SOME_NAME, ONE_KEY_ONE_VALUE, false, true, withProperties, false);
 
@@ -555,7 +557,7 @@ public class CreateSourceFactoryTest {
     createSourceFactory.createStreamCommand(statement, ksqlConfig);
 
     // Then:
-    verify(topicClient).isTopicExists(TOPIC_NAME);
+    verify(topicClient).describeTopic(TOPIC_NAME);
   }
 
   @Test

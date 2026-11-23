@@ -126,11 +126,11 @@ public final class TopicProperties {
     }
 
     Builder withSource(final Supplier<TopicDescription> descriptionSupplier,
-        final Supplier<Map<String, String>> configsSupplier) {
+        final Supplier<Map<String, String>> configsSupplier,
+        final boolean inheritSourceReplicas) {
       fromSource = Suppliers.memoize(() -> {
         final TopicDescription description = descriptionSupplier.get();
         final Integer partitions = description.partitions().size();
-        final Short replicas = (short) description.partitions().get(0).replicas().size();
 
         final Map<String, String> configs = configsSupplier.get();
         final Long retentionMs = Long.parseLong(
@@ -138,6 +138,17 @@ public final class TopicProperties {
                 TopicConfig.RETENTION_MS_CONFIG, String.valueOf(DEFAULT_RETENTION_IN_MS)))
         );
 
+        // By default (inheritSourceReplicas=true, matching prior behavior), inherit the source
+        // topic's described replication factor for the created sink topic. Some Kafka clusters
+        // report a describe-time replication factor that differs from the cluster's actual
+        // default and reject a CreateTopics whose explicit replication factor does not match that
+        // default, so inheritSourceReplicas=false (ksql.create.topic.inherit.source.replicas.
+        // enabled) leaves replicas unset (null) instead, which falls through to DEFAULT_REPLICAS
+        // (-1) and lets createTopic resolve it to the cluster's default RF. Partitions are always
+        // inherited from the source regardless, so the sink stays co-partitioned.
+        final Short replicas = inheritSourceReplicas
+            ? (short) description.partitions().get(0).replicas().size()
+            : null;
         return new TopicProperties(null, partitions, replicas, retentionMs);
       });
       return this;

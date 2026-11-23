@@ -79,7 +79,7 @@
             <plugin>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro-maven-plugin</artifactId>
-                <version>${avro.version}</version>
+                <version>${avro.maven.plugin.version}</version>
                 <executions>
                     <execution>
                         <phase>generate-sources</phase>

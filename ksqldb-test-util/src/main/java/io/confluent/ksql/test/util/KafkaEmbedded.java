@@ -22,8 +22,6 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.io.IOException;
-import java.net.ServerSocket;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -79,7 +77,7 @@ class KafkaEmbedded {
     log.debug("Starting embedded Kafka broker");
 
     applyDefaultConfig(config);
-    setupListenerConfiguration(config);
+    dropListenerConfiguration(config);
 
     final Map<Integer, Map<String,String>> brokerConfigs = new HashMap<>();
     brokerConfigs.put(0, config);
@@ -126,33 +124,19 @@ class KafkaEmbedded {
     config.put("confluent.license.topic.replication.factor", "1");
   }
 
-  /**
-   * Setup listener configuration for KRaft mode with dynamic free ports.
-   *
-   * @param config The broker configuration settings to be updated.
-   */
-  private void setupListenerConfiguration(final Map<String, String> config) {
-    final int controllerPort = getFreePort();
-    final int externalPort = getFreePort();
-
-    config.put("listeners", "CONTROLLER://127.0.0.1:" + controllerPort
-        + ",EXTERNAL://127.0.0.1:" + externalPort);
-    config.put("inter.broker.listener.name", "EXTERNAL");
-    config.put("controller.listener.names", "CONTROLLER");
-    config.put("advertised.listeners", "EXTERNAL://127.0.0.1:" + externalPort);
-
-    if (!config.containsKey("listener.security.protocol.map")) {
-      // Default to PLAINTEXT if not set
-      config.put("listener.security.protocol.map", "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT");
-    }
-  }
-
-  private static int getFreePort() {
-    try (ServerSocket socket = new ServerSocket(0)) {
-      return socket.getLocalPort();
-    } catch (IOException e) {
-      throw new RuntimeException("Unable to get a free port", e);
-    }
+  // Listeners are intentionally NOT configured here. KafkaClusterTestKit assigns the broker and
+  // controller listeners itself and pre-binds their sockets, keeping them held until the broker
+  // starts. Choosing ports ourselves (probe, release, re-bind later) races with other processes -
+  // notably parallel test forks and outgoing client connections, which draw from the same
+  // ephemeral port range - and fails with "Address already in use".
+  //
+  // Any listener addresses supplied by the caller are dropped for the same reason; the security
+  // protocol map (e.g. EXTERNAL:SASL_SSL) is still honoured.
+  private static void dropListenerConfiguration(final Map<String, String> config) {
+    config.remove("listeners");
+    config.remove("advertised.listeners");
+    config.remove("inter.broker.listener.name");
+    config.remove("controller.listener.names");
   }
 
   /**

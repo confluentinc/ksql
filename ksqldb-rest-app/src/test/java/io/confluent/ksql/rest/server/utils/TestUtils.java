@@ -15,61 +15,63 @@
 
 package io.confluent.ksql.rest.server.utils;
 
-import com.google.common.collect.Range;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestUtils {
-  private static final int MIN_EPHEMERAL_PORT = 1024;
-  private static final int MAX_EPHEMERAL_PORT = 65535;
-  private static final int PORT_RANGE_INTERVAL = 650; // allows for 1000 random ports
-  private static final AtomicInteger CURRENT_MIN_PORT = new AtomicInteger(MIN_EPHEMERAL_PORT);
 
-  private static final int MAX_PORT_TRIES = 10;
+  // Below the OS ephemeral ranges (Linux: 32768+, macOS/Windows: 49152+). Outgoing client
+  // connections draw their local port from the ephemeral range, so a port we release there can be
+  // grabbed by an unrelated client socket before the caller manages to bind it.
+  private static final int MIN_PORT = 12000;
+  private static final int MAX_PORT = 32000;
+  private static final int MAX_PORT_TRIES = 100;
+
+  // Ports already handed out by this JVM, so two calls never return the same port even if the
+  // caller has not bound it yet.
+  private static final Set<Integer> HANDED_OUT = ConcurrentHashMap.newKeySet();
 
   /**
-   *
    * Find a free port.
    *
-   * <p>Note: Has a inherent race condition:
-   * after finding the free port it releases it so the caller can use it. This opens up a window in
-   * which another application can grab the free port, causing the test to fail.
+   * <p>Note: Has a inherent race condition: after finding the free port it releases it so the
+   * caller can use it. This opens up a window in which another application can grab the free
+   * port, causing the test to fail.
    *
-   * <p>Use only where there is no alternative. Jetty, for example, can allocate its own free
-   * port. Where you do use it, ensure you do so in a loop that will retry if the port is no longer
-   * free by the time the test comes to using it.
+   * <p>Use only where there is no alternative: prefer listening on port 0 and reading back the
+   * actual port.
    *
-   * Since this method retries within a range and chooses at random, conflicts are hopefully rare.
-   * Also, since it tries at random over the range, it hopefully minimizes the chance of a race
-   * occurring. Finally it also tries a new random range for each call to findFreeLocalPort to
-   * even further reduce the chance of collision if all tests use this method.
+   * <p>To keep the window safe when tests run in parallel forks/JVMs, ports are picked at random
+   * from a range below the OS ephemeral range (so outgoing connections can't take them) and
+   * verified to be bindable. Ports already returned by this JVM are skipped. Falls back to an
+   * OS-assigned port if the range is exhausted.
    */
   public static int findFreeLocalPort() {
-    final Range<Integer> portRange = getNextEphemeralPortRange();
     for (int i = 0; i < MAX_PORT_TRIES; i++) {
-      final int portToTry =
-          ThreadLocalRandom.current().nextInt(portRange.lowerEndpoint(), portRange.upperEndpoint());
-      try (
-          ServerSocket socket = new ServerSocket(portToTry);
-      ) {
-        return socket.getLocalPort();
+      final int candidate = ThreadLocalRandom.current().nextInt(MIN_PORT, MAX_PORT);
+      if (HANDED_OUT.contains(candidate)) {
+        continue;
+      }
+      try (ServerSocket socket = new ServerSocket(candidate)) {
+        if (HANDED_OUT.add(socket.getLocalPort())) {
+          return socket.getLocalPort();
+        }
       } catch (IOException e) {
-        // In use
+        // in use, try another
+      }
+    }
+    for (int i = 0; i < MAX_PORT_TRIES; i++) {
+      try (ServerSocket socket = new ServerSocket(0)) {
+        if (HANDED_OUT.add(socket.getLocalPort())) {
+          return socket.getLocalPort();
+        }
+      } catch (IOException e) {
+        // try again
       }
     }
     throw new RuntimeException("Couldn't find free port");
-  }
-
-
-  private static Range<Integer> getNextEphemeralPortRange() {
-    final int minEndpoint = CURRENT_MIN_PORT.getAndAdd(PORT_RANGE_INTERVAL);
-    if (minEndpoint + PORT_RANGE_INTERVAL > MAX_EPHEMERAL_PORT) {
-      throw new AssertionError(
-          "Ran out of free ports. This can be remedied by decreasing the PORT_RANGE_INTERVAL " +
-              "at added risk of port conflicts.");
-    }
-    return Range.closedOpen(minEndpoint, minEndpoint + PORT_RANGE_INTERVAL);
   }
 }

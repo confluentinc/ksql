@@ -37,6 +37,7 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -127,13 +128,16 @@ public class PullQueryFunctionalTest {
   private static final BiFunction<Integer, String, SocketAddress> LOCALHOST_FACTORY =
       (port, host) -> SocketAddress.inetSocketAddress(port, "localhost");
 
+  private static final int INT_PORT_0 = TestUtils.findFreeLocalPort();
+  private static final int INT_PORT_1 = TestUtils.findFreeLocalPort();
+
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8188")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8188")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT_0)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT_0)
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "num.standby.replicas", 1)
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 10000)
@@ -145,8 +149,8 @@ public class PullQueryFunctionalTest {
       .withEnabledKsqlClient()
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8189")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8189")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT_1)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT_1)
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "num.standby.replicas", 1)
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 10000)
@@ -292,7 +296,7 @@ public class PullQueryFunctionalTest {
     Set<String> hosts = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
-    assertThat(hosts, containsInAnyOrder("localhost:8188", "localhost:8189"));
+    assertThat(hosts, containsInAnyOrder("localhost:" + INT_PORT_0, "localhost:" + INT_PORT_1));
     List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
@@ -362,7 +366,7 @@ public class PullQueryFunctionalTest {
     Set<String> hosts = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
-    assertThat(hosts, containsInAnyOrder("localhost:8188","localhost:8189"));
+    assertThat(hosts, containsInAnyOrder("localhost:" + INT_PORT_0,"localhost:" + INT_PORT_1));
     List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
@@ -413,11 +417,11 @@ public class PullQueryFunctionalTest {
     Set<String> hosts1 = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
-    assertThat(hosts1, containsInAnyOrder("localhost:8188", "localhost:8189"));
+    assertThat(hosts1, containsInAnyOrder("localhost:" + INT_PORT_0, "localhost:" + INT_PORT_1));
     Set<String> hosts2 = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
-    assertThat(hosts2, containsInAnyOrder("localhost:8188", "localhost:8189"));
+    assertThat(hosts2, containsInAnyOrder("localhost:" + INT_PORT_0, "localhost:" + INT_PORT_1));
 
     List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getRow().get().getColumns())
@@ -455,11 +459,11 @@ public class PullQueryFunctionalTest {
     Set<String> hosts1 = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
-    assertThat(hosts1, containsInAnyOrder("localhost:8188", "localhost:8189"));
+    assertThat(hosts1, containsInAnyOrder("localhost:" + INT_PORT_0, "localhost:" + INT_PORT_1));
     Set<String> hosts2 = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
-    assertThat(hosts2, containsInAnyOrder("localhost:8188", "localhost:8189"));
+    assertThat(hosts2, containsInAnyOrder("localhost:" + INT_PORT_0, "localhost:" + INT_PORT_1));
 
     List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getRow().get().getColumns())

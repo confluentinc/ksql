@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import java.net.URI;
 import java.util.HashMap;
@@ -35,11 +36,24 @@ public class ListenersTest extends BaseApiTest {
 
   private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 
+  private static final int PORT_A = TestUtils.findFreeLocalPort();
+  private static final int PORT_B = TestUtils.findFreeLocalPort();
+  private static final int PORT_C = TestUtils.findFreeLocalPort();
+  private static final int PORT_D = TestUtils.findFreeLocalPort();
+
+  private static String http(final int port) {
+    return "http://localhost:" + port;
+  }
+
+  private static String https(final int port) {
+    return "https://localhost:" + port;
+  }
+
   @Test
   public void shouldSupportOneListener() {
     //Given:
     init();
-    createServer(createConfig("http://localhost:8088", false));
+    createServer(createConfig(http(PORT_B), false));
     this.client = createClient();
 
     // When:
@@ -47,14 +61,14 @@ public class ListenersTest extends BaseApiTest {
 
     // Then:
     assertThat(listeners, hasSize(1));
-    assertThat(listeners.get(0), is(URI.create("http://localhost:8088")));
+    assertThat(listeners.get(0), is(URI.create(http(PORT_B))));
   }
 
   @Test
   public void shouldSupportMultipleListenersSameProtocols() {
     // Given:
     init();
-    createServer(createConfig("http://localhost:8088, http://localhost:8089", true));
+    createServer(createConfig(http(PORT_B) + ", " + http(PORT_C), true));
     this.client = createClient();
 
     // When:
@@ -62,15 +76,15 @@ public class ListenersTest extends BaseApiTest {
 
     // Then:
     assertThat(listeners, hasSize(2));
-    assertThat(listeners.get(0), is(URI.create("http://localhost:8088")));
-    assertThat(listeners.get(1), is(URI.create("http://localhost:8089")));
+    assertThat(listeners.get(0), is(URI.create(http(PORT_B))));
+    assertThat(listeners.get(1), is(URI.create(http(PORT_C))));
   }
 
   @Test
   public void shouldSupportMultipleListenersDifferentProtocols() {
     // Given:
     init();
-    createServer(createConfig("http://localhost:8088, https://localhost:8089", true));
+    createServer(createConfig(http(PORT_B) + ", " + https(PORT_C), true));
     this.client = createClient();
 
     // When:
@@ -78,15 +92,15 @@ public class ListenersTest extends BaseApiTest {
 
     // Then:
     assertThat(listeners, hasSize(2));
-    assertThat(listeners.get(0), is(URI.create("http://localhost:8088")));
-    assertThat(listeners.get(1), is(URI.create("https://localhost:8089")));
+    assertThat(listeners.get(0), is(URI.create(http(PORT_B))));
+    assertThat(listeners.get(1), is(URI.create(https(PORT_C))));
   }
 
   @Test
   public void shouldSupportOneProxyProtocolListener() {
     // Given:
     init();
-    createServer(createConfig("http://localhost:8088", false, "http://localhost:8088"));
+    createServer(createConfig(http(PORT_B), false, http(PORT_B)));
     this.client = createClient();
 
     // When:
@@ -95,9 +109,9 @@ public class ListenersTest extends BaseApiTest {
 
     // Then:
     assertThat(listeners, hasSize(1));
-    assertThat(listeners.get(0), is(URI.create("http://localhost:8088")));
+    assertThat(listeners.get(0), is(URI.create(http(PORT_B))));
     assertThat(proxyProtocolListeners, hasSize(1));
-    assertThat(proxyProtocolListeners.get(0), is(URI.create("http://localhost:8088")));
+    assertThat(proxyProtocolListeners.get(0), is(URI.create(http(PORT_B))));
   }
 
   @Test
@@ -105,8 +119,8 @@ public class ListenersTest extends BaseApiTest {
     // Given:
     init();
     createServer(createConfig(
-        "http://localhost:8087, http://localhost:8088, https://localhost:8090", true,
-        "http://localhost:8088, https://localhost:8090"));
+        http(PORT_A) + ", " + http(PORT_B) + ", " + https(PORT_D), true,
+        http(PORT_B) + ", " + https(PORT_D)));
     this.client = createClient();
 
     // When:
@@ -115,12 +129,12 @@ public class ListenersTest extends BaseApiTest {
 
     // Then:
     assertThat(listeners, hasSize(3));
-    assertThat(listeners.get(0), is(URI.create("http://localhost:8087")));
-    assertThat(listeners.get(1), is(URI.create("http://localhost:8088")));
-    assertThat(listeners.get(2), is(URI.create("https://localhost:8090")));
+    assertThat(listeners.get(0), is(URI.create(http(PORT_A))));
+    assertThat(listeners.get(1), is(URI.create(http(PORT_B))));
+    assertThat(listeners.get(2), is(URI.create(https(PORT_D))));
     assertThat(proxyProtocolListeners, hasSize(2));
-    assertThat(proxyProtocolListeners.get(0), is(URI.create("http://localhost:8088")));
-    assertThat(proxyProtocolListeners.get(1), is(URI.create("https://localhost:8090")));
+    assertThat(proxyProtocolListeners.get(0), is(URI.create(http(PORT_B))));
+    assertThat(proxyProtocolListeners.get(1), is(URI.create(https(PORT_D))));
   }
 
   @Test

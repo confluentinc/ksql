@@ -160,8 +160,10 @@
         <netty-codec-http2-version>4.1.139.Final</netty-codec-http2-version>
         <jersey-common>3.1.10</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
-        <!-- Unit tests (surefire) fork count: 1C = one JVM per CPU core. Override with -Dsurefire.forkCount=1 to run serially. -->
-        <surefire.forkCount>1C</surefire.forkCount>
+        <!-- Unit tests (surefire) fork count. Kept at 1 because the build already runs modules in parallel
+             (-T 1C) and each fork has a 1g heap; raise with -Dsurefire.forkCount=2 (or 1C) once CI memory
+             headroom is confirmed. -->
+        <surefire.forkCount>1</surefire.forkCount>
         <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
         <!-- Failsafe is skipped by default; modules containing integration tests set this to false. -->
         <failsafe.skip>true</failsafe.skip>

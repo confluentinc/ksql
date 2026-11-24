@@ -4,7 +4,10 @@
 #
 # Use shellcheck to lint this file
 #
-SERVERPIDS=$(jcmd | grep 'io\.confluent\.ksql\.rest\.server\.KsqlServerMain' | awk '{print $1}')
+# Find the server with ps, as kafka-server-stop does: jcmd is missing from JREs and can't see a JVM of
+# another implementation (e.g. a HotSpot jcmd and an OpenJ9 server).
+# shellcheck disable=SC2009
+SERVERPIDS=$(ps axww | grep 'io\.confluent\.ksql\.rest\.server\.KsqlServerMain' | grep java | grep -v grep | awk '{print $1}')
 
 if [ -z "$SERVERPIDS" ]; then
   echo "No server(s) to stop"

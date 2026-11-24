@@ -40,6 +40,10 @@
     if we're pulling in commonly used libraries such as Apache commons, Guava, Google stuff, etc.
     as the probability of a conflict gets even higher. These ones in particular should really be avoided.
     -->
+    <properties>
+        <failsafe.skip>false</failsafe.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.confluent.ksql</groupId>

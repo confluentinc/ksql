@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.InputStreamReader;
@@ -34,8 +35,11 @@ public class ProxyProtocolTest extends ApiTest {
   @Override
   protected KsqlRestConfig createServerConfig() {
     final Map<String, Object> config = new HashMap<>();
-    config.put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8080,http://localhost:8081");
-    config.put(KsqlRestConfig.PROXY_PROTOCOL_LISTENERS_CONFIG, "http://localhost:8081");
+    final int port = TestUtils.findFreeLocalPort();
+    final int proxyPort = TestUtils.findFreeLocalPort();
+    config.put(KsqlRestConfig.LISTENERS_CONFIG,
+        "http://localhost:" + port + ",http://localhost:" + proxyPort);
+    config.put(KsqlRestConfig.PROXY_PROTOCOL_LISTENERS_CONFIG, "http://localhost:" + proxyPort);
     config.put(KsqlRestConfig.VERTICLE_INSTANCES, 4);
     return new KsqlRestConfig(config);
   }

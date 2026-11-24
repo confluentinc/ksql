@@ -27,6 +27,10 @@
 
     <artifactId>ksqldb-engine</artifactId>
 
+    <properties>
+        <failsafe.skip>false</failsafe.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.jayway.jsonpath</groupId>

@@ -214,22 +214,14 @@ fi
 
 # OpenJ9 writes a system core, heap dump, javacore and snap trace on OutOfMemoryError by default,
 # into the working directory or /tmp. Match HotSpot: write nothing on OOM, and send crash dumps to
-# LOG_DIR when it exists. These are command-line options, so they would override the same settings
-# made anywhere else; they are therefore added only when the user has set no dump option
-# (-Xdump, -XX:[+-]HeapDumpOnOutOfMemoryError, -XX:HeapDumpPath or -Xoptionsfile) in
-#   KSQL_HEAP_OPTS, KSQL_JVM_PERFORMANCE_OPTS, KSQL_GC_LOG_OPTS, KSQL_JMX_OPTS, KSQL_LOG4J_OPTS, KSQL_OPTS, KSQL_JAVA_DEBUG_OPTS,
-#   or the launcher variables JAVA_TOOL_OPTIONS, JDK_JAVA_OPTIONS, OPENJ9_JAVA_OPTIONS, IBM_JAVA_OPTIONS.
+# LOG_DIR when it exists. Placed first on the java command line, so the same options set in the
+# script's *_OPTS variables or arguments override it.
+OPENJ9_DEFAULT_OPTS=""
 if [ "$JAVA_VM_OPENJ9" = "true" ]; then
-  JAVA_OPTS_TO_CHECK=" ${KSQL_HEAP_OPTS:-} ${KSQL_JVM_PERFORMANCE_OPTS:-} ${KSQL_GC_LOG_OPTS:-} ${KSQL_JMX_OPTS:-} ${KSQL_LOG4J_OPTS:-} ${KSQL_OPTS:-} ${KSQL_JAVA_DEBUG_OPTS:-} ${JAVA_TOOL_OPTIONS:-} ${JDK_JAVA_OPTIONS:-} ${OPENJ9_JAVA_OPTIONS:-} ${IBM_JAVA_OPTIONS:-} "
-  case "$JAVA_OPTS_TO_CHECK" in
-    *-Xdump*|*HeapDumpOnOutOfMemoryError*|*HeapDumpPath*|*-Xoptionsfile*) ;;
-    *)
-      KSQL_OPTS="-XX:-HeapDumpOnOutOfMemoryError $KSQL_OPTS"
-      if [ -d "$LOG_DIR" ]; then
-        KSQL_OPTS="-Xdump:directory=$LOG_DIR $KSQL_OPTS"
-      fi
-      ;;
-  esac
+  OPENJ9_DEFAULT_OPTS="-XX:-HeapDumpOnOutOfMemoryError"
+  if [ -d "$LOG_DIR" ]; then
+    OPENJ9_DEFAULT_OPTS="-Xdump:directory=$LOG_DIR $OPENJ9_DEFAULT_OPTS"
+  fi
 fi
 
 if [ $# -lt 1 ];
@@ -292,12 +284,8 @@ if [ "x$GC_LOG_ENABLED" = "xtrue" ]; then
   JAVA_MAJOR_VERSION=$(echo "$JAVA_VERSION_OUTPUT" | sed -E -n 's/.* version "([0-9]*).*$/\1/p')
   if [ "$JAVA_VM_OPENJ9" = "true" ]; then
     # OpenJ9 verbose GC log (XML). It rotates by GC cycles, not bytes: 10 files of 10000 cycles,
-    # about 30 MB each at the ~3 KB per cycle measured on a broker. Not added when -Xverbosegclog
-    # is already set in one of the variables checked for the dump options above.
-    case "$JAVA_OPTS_TO_CHECK" in
-      *-Xverbosegclog*) ;;
-      *) KSQL_GC_LOG_OPTS="-Xverbosegclog:$LOG_DIR/$GC_LOG_FILE_NAME,10,10000" ;;
-    esac
+    # about 30 MB each at the ~3 KB per cycle measured on a broker.
+    KSQL_GC_LOG_OPTS="-Xverbosegclog:$LOG_DIR/$GC_LOG_FILE_NAME,10,10000"
   elif [[ "$JAVA_MAJOR_VERSION" -ge "9" ]] ; then
     KSQL_GC_LOG_OPTS="-Xlog:gc*:file=$LOG_DIR/$GC_LOG_FILE_NAME:time,tags:filecount=10,filesize=100M"
   else
@@ -326,7 +314,8 @@ if [ "x$KSQL_DEBUG" != "x" ]; then
     echo "Enabling Java debug options: $KSQL_JAVA_DEBUG_OPTS"
 fi
 
-OPTIONS=($KSQL_HEAP_OPTS)
+# shellcheck disable=SC2206
+OPTIONS=($OPENJ9_DEFAULT_OPTS $KSQL_HEAP_OPTS)
 OPTIONS+=($KSQL_JVM_PERFORMANCE_OPTS)
 OPTIONS+=($KSQL_JMX_OPTS)
 OPTIONS+=($KSQL_LOG4J_OPTS)

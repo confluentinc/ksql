@@ -312,16 +312,6 @@ java.lang.Compiler$
 Any blank lines or lines beginning with `#` are ignored. If the file is
 not present, or is empty, then no classes are blacklisted.
 
-### Security Manager
-
-By default, ksqlDB installs a simple Java security manager for executing
-user defined functions. The security manager blocks attempts by any functions
-to fork processes from the ksqlDB Server. It also prevents them from calling
-`System.exit(..)`.
-
-You can disable the security manager by setting
-`ksql.udf.enable.security.manager` to `false`.
-
 ### Disabling ksqlDB Custom Functions
 
 You can disable the loading of all UDFs in the extensions directory by

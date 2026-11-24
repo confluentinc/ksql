@@ -33,6 +33,7 @@
         <cli.skip-execute>false</cli.skip-execute>
         <cli.main-class>${main-class}</cli.main-class>
         <arg.version>0.2.0</arg.version>
+        <failsafe.skip>false</failsafe.skip>
     </properties>
 
     <dependencies>

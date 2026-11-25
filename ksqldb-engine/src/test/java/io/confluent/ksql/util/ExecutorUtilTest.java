@@ -28,11 +28,31 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
+import org.junit.After;
 import org.junit.Test;
 
 public class ExecutorUtilTest {
 
   private static final Duration SMALL_RETRY_BACKOFF = Duration.ofMillis(1);
+
+  @After
+  public void resetRetryTimeout() {
+    // Reset the global retry count to its default so other tests are unaffected.
+    ExecutorUtil.setRetryTimeoutMs(2500);
+  }
+
+  @Test
+  public void shouldDeriveRetriesFromConfiguredTimeout() {
+    ExecutorUtil.setRetryTimeoutMs(30000);
+    assertThat(ExecutorUtil.getConfiguredNumRetries(), is(60));
+
+    ExecutorUtil.setRetryTimeoutMs(2500);
+    assertThat(ExecutorUtil.getConfiguredNumRetries(), is(5));
+
+    // Always makes at least one attempt, even for a very small timeout.
+    ExecutorUtil.setRetryTimeoutMs(0);
+    assertThat(ExecutorUtil.getConfiguredNumRetries(), is(1));
+  }
 
   @Test
   public void shouldRetryAndEventuallyThrowIfNeverSucceeds() throws Exception {

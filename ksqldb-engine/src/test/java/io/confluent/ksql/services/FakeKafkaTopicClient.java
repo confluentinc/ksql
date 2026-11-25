@@ -20,6 +20,7 @@ import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.topic.TopicProperties;
 import java.util.Collection;
 import java.util.Collections;
@@ -177,7 +178,8 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   public TopicDescription describeTopic(final String topicName) {
     final FakeTopic fakeTopic = topicMap.get(topicName);
     if (fakeTopic == null) {
-      throw new UnknownTopicOrPartitionException("unknown topic: " + topicName);
+      throw new KafkaResponseGetFailedException("Failed to Describe Kafka Topic(s): " + topicName,
+          new UnknownTopicOrPartitionException("unknown topic: " + topicName));
     }
 
     return fakeTopic.getDescription();

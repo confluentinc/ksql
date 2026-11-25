@@ -82,12 +82,16 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.errors.TimeoutException;
+import org.apache.kafka.common.metrics.Metrics;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -120,6 +124,9 @@ public class DistributingExecutorTest {
       ConfiguredStatement.of(PreparedStatement.of("statement", STATEMENT),
           SessionConfig.of(KSQL_CONFIG, ImmutableMap.of()));
   private static final CommandIdAssigner IDGEN = new CommandIdAssigner();
+  private static final Map<String, String> METRICS_TAGS = ImmutableMap.of("tag", "value");
+  private static final MetricName REJECT_COUNT = new MetricName(
+      "command-topic-rate-limit-reject-count", "_confluent-ksql-limits", "", METRICS_TAGS);
 
   @Mock
   private CommandQueue queue;
@@ -151,12 +158,14 @@ public class DistributingExecutorTest {
   private Supplier<String> commandRunnerWarning;
 
   private DistributingExecutor distributor;
+  private Metrics metrics;
   private AtomicLong scnCounter;
   private KsqlSecurityContext securityContext;
 
   @Before
   public void setUp() throws InterruptedException {
     scnCounter = new AtomicLong();
+    metrics = new Metrics();
     when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
     when(queue.enqueueCommand(any(), any(), any())).thenReturn(status);
@@ -181,7 +190,9 @@ public class DistributingExecutorTest {
         Optional.of(authorizationValidator),
         validatedCommandFactory,
         errorHandler,
-        commandRunnerWarning
+        commandRunnerWarning,
+        metrics,
+        METRICS_TAGS
     );
   }
 
@@ -274,7 +285,9 @@ public class DistributingExecutorTest {
             Optional.of(authorizationValidator),
             validatedCommandFactory,
             errorHandler,
-            commandRunnerWarning
+            commandRunnerWarning,
+            metrics,
+            METRICS_TAGS
     );
     // When:
     assertThrows(Exception.class, () -> distributor.execute(
@@ -578,7 +591,9 @@ public class DistributingExecutorTest {
       Optional.of(authorizationValidator),
       validatedCommandFactory,
       errorHandler,
-      commandRunnerWarning
+      commandRunnerWarning,
+      metrics,
+      METRICS_TAGS
     );
     
     // When:
@@ -601,5 +616,101 @@ public class DistributingExecutorTest {
       exceptionFound = true;
     }
     assertTrue(exceptionFound);
+  }
+  @Test
+  public void shouldRecordRejectAndNotCreateProducerIfRateLimitHit() {
+    // Given:
+    final DistributingExecutor rateLimitedDistributor = rateLimitedDistributor();
+    rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+
+    // When:
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> rateLimitedDistributor.execute(
+            CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
+
+    // Then:
+    assertThat(e.getResponse().getStatus(), is(429));
+    verify(queue, times(1)).createTransactionalProducer();
+    verify(transactionalProducer, times(1)).initTransactions();
+    verify(transactionalProducer, times(1)).close();
+    assertThat(metrics.metric(REJECT_COUNT).metricValue(), is(1.0));
+  }
+
+  @Test
+  public void shouldNotRecordRejectIfRateLimitNotHit() {
+    // When:
+    distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+
+    // Then:
+    assertThat(metrics.metric(REJECT_COUNT).metricValue(), is(0.0));
+  }
+
+  @Test
+  public void shouldReuseRejectMetricIfExecutorRecreatedOnSameMetrics() {
+    // Given:
+    final DistributingExecutor first = rateLimitedDistributor();
+    first.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+    assertThrows(
+        KsqlRestException.class,
+        () -> first.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
+
+    // When:
+    final DistributingExecutor second = rateLimitedDistributor();
+    second.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+    assertThrows(
+        KsqlRestException.class,
+        () -> second.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
+
+    // Then:
+    assertThat(metrics.metric(REJECT_COUNT).metricValue(), is(2.0));
+  }
+
+  @Test
+  public void shouldCloseProducerIfInitTransactionsTimesOut() {
+    // Given:
+    doThrow(new TimeoutException("timed out")).when(transactionalProducer).initTransactions();
+
+    // When:
+    assertThrows(
+        KsqlServerException.class,
+        () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
+
+    // Then:
+    verify(transactionalProducer).close(Duration.ZERO);
+  }
+
+  @Test
+  public void shouldCloseProducerIfInitTransactionsFails() {
+    // Given:
+    doThrow(new KafkaException("boom")).when(transactionalProducer).initTransactions();
+
+    // When:
+    assertThrows(
+        KsqlStatementException.class,
+        () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
+
+    // Then:
+    verify(transactionalProducer).close(Duration.ZERO);
+  }
+
+  private DistributingExecutor rateLimitedDistributor() {
+    return new DistributingExecutor(
+        new KsqlConfig(ImmutableMap.of(KsqlRestConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG, 0.25)),
+        queue,
+        DURATION_10_MS,
+        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
+        Optional.of(authorizationValidator),
+        validatedCommandFactory,
+        errorHandler,
+        commandRunnerWarning,
+        metrics,
+        METRICS_TAGS
+    );
   }
 }

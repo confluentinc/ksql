@@ -40,7 +40,7 @@ blocks:
         - name: Test
           commands:
             - ci-tools ci-update-version --direct-pom-edit
-            - mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
+            - ./mvnw -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
             - . cache-maven store
       epilogue:
         always:

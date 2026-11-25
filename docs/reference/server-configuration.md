@@ -700,17 +700,6 @@ with the broker defaults, if the topics don't exist.
 Don't set the replication factor if there is a replica placement constraint
 on the broker.
 
-## `ksql.runtime.feature.shared.enabled`
-
-**Per query:** no
-
-Feature flag for sharing {{ site.kstreams }} runtimes.
-
-If set to `true`, new queries may share {{ site.kstreams }} instances.
-If set to `false`, persistent queries use separate runtimes.
-
-The default is `false`. 
-
 ## `ksql.schema.registry.url`
 
 **Per query:** no

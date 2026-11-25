@@ -27,10 +27,8 @@ public final class MetricsTagUtils {
   public static final String KSQL_TOPIC_TAG = "topic";
   public static final String KSQL_QUERY_ID_TAG = "query-id";
 
-  public static final Pattern SHARED_RUNTIME_THREAD_PATTERN = Pattern.compile("(.*?)__\\d*_\\d*");
-
   /*
-   For non-shared runtimes, the thread id will look something like this:
+   The thread id looks something like this:
 
    _confluent-ksql-pksqlc-d1m0zquery_ +                  // thread id prefix
    CSAS_TEST_COPY-STREAM_1_23 +                          // query id

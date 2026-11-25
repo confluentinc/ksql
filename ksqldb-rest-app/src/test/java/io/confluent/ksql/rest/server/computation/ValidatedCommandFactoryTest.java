@@ -19,13 +19,11 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
@@ -35,7 +33,6 @@ import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.Executor;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.ResumeQuery;
@@ -46,19 +43,13 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import io.confluent.ksql.util.PersistentQueryMetadataImpl;
-import org.apache.kafka.common.config.ConfigException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -85,8 +76,6 @@ public class ValidatedCommandFactoryTest {
   @Mock
   private TerminateQuery terminateQuery;
   @Mock
-  private AlterSystemProperty alterSystemProperty;
-  @Mock
   private CreateStream plannedQuery;
   @Mock
   private KsqlConfig config;
@@ -107,7 +96,6 @@ public class ValidatedCommandFactoryTest {
     commandFactory = new ValidatedCommandFactory();
     when(executionContext.getKsqlConfig()).thenReturn(config);
     when(executionContext.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
-    when(result.getQuery()).thenReturn(Optional.empty());
   }
 
   @Test
@@ -123,64 +111,6 @@ public class ValidatedCommandFactoryTest {
 
     // Then:
     assertThat(command, is(Command.of(configuredStatement)));
-  }
-
-  @Test
-  public void shouldRaiseExceptionIfKeyDoesNotExistEditablePropertiesList() {
-    configuredStatement = configuredStatement("ALTER SYSTEM 'ksql.streams.upgrade.from'='TEST';" , alterSystemProperty);
-    when(alterSystemProperty.getPropertyName()).thenReturn("ksql.streams.upgrade.from");
-    when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
-    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-
-    assertThrows(ConfigException.class,
-        () -> commandFactory.create(configuredStatement, executionContext));
-  }
-
-  @Test
-  public void shouldNotRaiseExceptionIfKeyInEditablePropertiesList() {
-    configuredStatement = configuredStatement("ALTER SYSTEM 'ksql.streams.upgrade.from'='TEST';" , alterSystemProperty);
-    when(alterSystemProperty.getPropertyName()).thenReturn("ksql.streams.commit.interval.ms");
-    when(alterSystemProperty.getPropertyValue()).thenReturn("100");
-    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-
-    commandFactory.create(configuredStatement, executionContext);
-  }
-
-  @Test
-  public void shouldRaiseExceptionWhenFeatureFlagIsTurnedOff() {
-    configuredStatement = configuredStatement("ALTER SYSTEM 'ksql.streams.upgrade.from'='TEST';" , alterSystemProperty);
-    when(alterSystemProperty.getPropertyName()).thenReturn("ksql.streams.upgrade.from");
-    when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
-    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(false);
-
-    assertThrows(KsqlServerException.class,
-        () -> commandFactory.create(configuredStatement, executionContext));
-  }
-
-  @Test
-  public void shouldNotRaiseExceptionWhenPrefixIsAdded() {
-    configuredStatement = configuredStatement("ALTER SYSTEM 'TEST'='TEST';" , alterSystemProperty);
-    when(alterSystemProperty.getPropertyName()).thenReturn("TEST");
-    when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
-    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-
-    assertThrows(ConfigException.class,
-        () -> commandFactory.create(configuredStatement, executionContext));
-  }
-
-  @Test
-  public void shouldRaiseExceptionWhenQueryIsRunningAndProcessingGuranteeIsAttemptedToChange() {
-    configuredStatement = configuredStatement("ALTER SYSTEM 'processing.guarantee'='exactly_once';" , alterSystemProperty);
-    when(alterSystemProperty.getPropertyName()).thenReturn("processing.guarantee");
-    when(alterSystemProperty.getPropertyValue()).thenReturn("exactly_once");
-    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-
-    final List<PersistentQueryMetadata> persistentList = new ArrayList<>();
-    persistentList.add(query1);
-    when(executionContext.getPersistentQueries()).thenReturn(persistentList);
-
-    assertThrows(ConfigException.class,
-        () -> commandFactory.create(configuredStatement, executionContext));
   }
 
   @Test
@@ -348,43 +278,6 @@ public class ValidatedCommandFactoryTest {
 
     // Then:
     assertThat(command, is(Command.of(ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides)))));
-  }
-
-  @Test
-  public void shouldCreateCommandForPlannedQueryInSharedRuntime() {
-    // Given:
-    givenPlannedQuery();
-    BinPackedPersistentQueryMetadataImpl queryMetadata = mock(BinPackedPersistentQueryMetadataImpl.class);
-    when(executionContext.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
-    when(result.getQuery()).thenReturn(Optional.ofNullable(queryMetadata));
-
-    // When:
-    final Command command = commandFactory.create(configuredStatement, executionContext);
-
-    // Then:
-    assertThat(command, is(Command.of(ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides)))));
-
-  }
-
-  @Test
-  public void shouldCreateCommandForPlannedQueryInDedicatedRuntime() {
-    // Given:
-    givenPlannedQuery();
-    PersistentQueryMetadataImpl queryMetadata = mock(PersistentQueryMetadataImpl.class);
-    when(executionContext.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
-    when(result.getQuery()).thenReturn(Optional.ofNullable(queryMetadata));
-    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-
-    // When:
-    final Command command = commandFactory.create(configuredStatement, executionContext);
-
-    // Then:
-    assertThat(command,
-        is(Command.of(
-            ConfiguredKsqlPlan.of(
-                A_PLAN,
-                SessionConfig.of(config,
-                    ImmutableMap.of(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false))))));
   }
 
   @Test

@@ -21,7 +21,6 @@ import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
@@ -43,9 +42,9 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
   @Override
   public void handle(final RoutingContext routingContext) {
     workerExecutor.<Void>executeBlocking(
-        promise -> authorize(promise, routingContext),
-        false,
-        ar -> handleAuthorizeResult(ar, routingContext));
+        () -> authorize(routingContext),
+        false
+    ).onComplete(ar -> handleAuthorizeResult(ar, routingContext));
   }
 
   private static void handleAuthorizeResult(final AsyncResult<Void> ar,
@@ -57,25 +56,18 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
     }
   }
 
-  private void authorize(final Promise<Void> promise, final RoutingContext routingContext) {
+  private Void authorize(final RoutingContext routingContext) {
     final User user = routingContext.user();
     if (user == null) {
-      promise.fail(
-          new IllegalStateException("Null user in " + KsqlAuthorizationProviderHandler.class));
-      return;
+      throw new IllegalStateException("Null user in " + KsqlAuthorizationProviderHandler.class);
     }
     if (!(user instanceof ApiUser)) {
       throw new IllegalStateException("Not an ApiUser: " + user);
     }
     final ApiUser apiUser = (ApiUser) user;
-    try {
-      ksqlAuthorizationProvider
-          .checkEndpointAccess(apiUser.getPrincipal(), routingContext.request().method().toString(),
-              routingContext.normalisedPath());
-    } catch (Exception e) {
-      promise.fail(e);
-      return;
-    }
-    promise.complete();
+    ksqlAuthorizationProvider
+        .checkEndpointAccess(apiUser.getPrincipal(), routingContext.request().method().toString(),
+            routingContext.normalizedPath());
+    return null;
   }
 }

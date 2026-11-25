@@ -55,7 +55,7 @@ final class StreamingTestUtils {
         .map(crs -> (List<ConsumerRecord<Bytes, Bytes>>) crs)
         .map(crs -> ImmutableMap.of(new TopicPartition("topic", 0), crs))
         .map(map -> (Map<TopicPartition, List<ConsumerRecord<Bytes, Bytes>>>) map)
-        .map(ConsumerRecords::new)
+        .map(map -> new ConsumerRecords<>(map, ImmutableMap.of()))
         .iterator();
   }
 
@@ -74,7 +74,7 @@ final class StreamingTestUtils {
         recordMap.computeIfAbsent(tp, ignored -> new ArrayList<>()).addAll(records.records(tp));
       }
     }
-    return new ConsumerRecords<>(recordMap);
+    return new ConsumerRecords<>(recordMap, ImmutableMap.of());
   }
 
   static PrintTopic printTopic(

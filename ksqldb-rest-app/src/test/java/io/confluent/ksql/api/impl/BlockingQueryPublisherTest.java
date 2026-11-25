@@ -19,6 +19,8 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,10 +32,12 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -66,6 +70,8 @@ public class BlockingQueryPublisherTest {
   public void setUp() {
     vertx = Vertx.vertx();
     context = vertx.getOrCreateContext();
+    when(workerExecutor.executeBlocking(any(Callable.class), anyBoolean()))
+        .thenReturn(Promise.promise().future());
     when(queryHandle.getColumnNames()).thenReturn(ImmutableList.of());
     when(queryHandle.getColumnTypes()).thenReturn(ImmutableList.of());
     when(queryHandle.getLogicalSchema()).thenReturn(schema);

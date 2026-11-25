@@ -29,6 +29,7 @@ import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
@@ -52,7 +53,7 @@ public class MetricAppender extends AbstractAppender {
                            final Filter filter,
                            final Layout<? extends Serializable> layout,
                            final boolean ignoreExceptions) {
-    super(name, filter, layout, ignoreExceptions);
+    super(name, filter, layout, ignoreExceptions, Property.EMPTY_ARRAY);
     metrics = new Metrics(
         new MetricConfig().samples(100).timeWindow(1, TimeUnit.SECONDS),
         ImmutableList.of(new JmxReporter()),

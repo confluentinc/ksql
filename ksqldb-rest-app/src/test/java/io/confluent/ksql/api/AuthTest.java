@@ -531,24 +531,24 @@ public class AuthTest extends ApiTest {
         // simulate a blocking execution, which plugins may do since they have access to
         // a worker executor
         final VertxCompletableFuture<Principal> vcf = new VertxCompletableFuture<>();
-        workerExecutor.executeBlocking(promise -> {
+        workerExecutor.<Principal>executeBlocking(() -> {
           try {
             Thread.sleep(1000);
           } catch (InterruptedException e) {
             routingContext.fail(401, e);
-            promise.fail("interrupted");
+            throw e;
           }
 
           if (authenticate) {
-            promise.complete(new StringPrincipal(expectedUser));
+            return new StringPrincipal(expectedUser);
           } else {
             final KsqlApiException e = new KsqlApiException(
                 "Unauthorized", ERROR_CODE_UNAUTHORIZED);
 
             routingContext.fail(401, e);
-            promise.fail(e);
+            throw e;
           }
-        }, vcf);
+        }).onComplete(vcf);
 
         return vcf;
       }

@@ -103,7 +103,7 @@ public final class FunctionLoaderUtils {
       final String functionName
   ) {
     try {
-      return functionClass.newInstance();
+      return functionClass.getDeclaredConstructor().newInstance();
     } catch (final Exception e) {
       throw new KsqlException(
           "Failed to create instance for UDF/UDTF="

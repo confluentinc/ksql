@@ -185,7 +185,8 @@ public class CodeGenRunner {
       final String javaCode,
       final Class<?> expressionType
   ) throws Exception {
-    final IExpressionEvaluator ee = CompilerFactoryFactory.getDefaultCompilerFactory()
+    final IExpressionEvaluator ee = CompilerFactoryFactory
+        .getDefaultCompilerFactory(Thread.currentThread().getContextClassLoader())
         .newExpressionEvaluator();
 
     ee.setDefaultImports(SqlToJavaVisitor.JAVA_IMPORTS.toArray(new String[0]));

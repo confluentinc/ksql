@@ -137,7 +137,7 @@ public class KafkaStreamsQueryValidatorTest {
     final SessionConfig config = SessionConfig.of(
         new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING, 30)),
         ImmutableMap.of(
-            StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 50,
+            StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, 50,
             KsqlConfig.KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING, 500
         )
     );
@@ -155,7 +155,7 @@ public class KafkaStreamsQueryValidatorTest {
     final SessionConfig config = SessionConfig.of(
         new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING, 50,
         KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)),
-        ImmutableMap.of(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 10)
+        ImmutableMap.of(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, 10)
     );
 
     // When/Then:
@@ -169,7 +169,7 @@ public class KafkaStreamsQueryValidatorTest {
         new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING, 50,
             KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)),
         ImmutableMap.of(
-            StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 50,
+            StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, 50,
             KsqlConfig.KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING, 500
         )
     );
@@ -208,14 +208,14 @@ public class KafkaStreamsQueryValidatorTest {
         : BASE_STREAMS_PROPERTIES;
     return SessionConfig.of(
         new KsqlConfig(ksqlProperties),
-        ImmutableMap.of(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, queryLimit)
+        ImmutableMap.of(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, queryLimit)
     );
   }
 
   private ImmutableMap<String, Object> streamPropsWithCacheLimit(long limit) {
     return ImmutableMap.<String, Object>builder()
         .putAll(BASE_STREAMS_PROPERTIES)
-        .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, limit)
+        .put(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, limit)
         .build();
   }
 }

@@ -89,7 +89,8 @@ public class CommandTopicTest {
     record2 = new ConsumerRecord<>("topic", 0, 1, commandId2, command2);
     record3 = new ConsumerRecord<>("topic", 0, 2, commandId3, command3);
     consumerRecords =
-        new ConsumerRecords<>(Collections.singletonMap(topicPartition, ImmutableList.of(record1, record2, record3)));
+        new ConsumerRecords<>(Collections.singletonMap(topicPartition, ImmutableList.of(record1, record2, record3)),
+            Collections.emptyMap());
     commandTopic = new CommandTopic(COMMAND_TOPIC_NAME, commandConsumer, commandTopicBackup);
     when(commandConsumer.endOffsets(any())).thenReturn(ImmutableMap.of(TOPIC_PARTITION, 0L));
   }
@@ -345,7 +346,7 @@ public class CommandTopicTest {
     // Given
     when(commandConsumer.poll(any(Duration.class)))
         .thenReturn(someConsumerRecords(record1, record2))
-        .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+        .thenReturn(new ConsumerRecords<>(Collections.emptyMap(), Collections.emptyMap()));
     commandTopic.start();
 
     // When
@@ -377,6 +378,7 @@ public class CommandTopicTest {
       final ConsumerRecord<byte[], byte[]>... consumerRecords
   ) {
     return new ConsumerRecords<>(
-        ImmutableMap.of(TOPIC_PARTITION, ImmutableList.copyOf(consumerRecords)));
+        ImmutableMap.of(TOPIC_PARTITION, ImmutableList.copyOf(consumerRecords)),
+        ImmutableMap.of());
   }
 }

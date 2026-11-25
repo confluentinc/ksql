@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Objects;
 import javax.net.ssl.SSLException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.text.WordUtils;
+import org.apache.commons.text.WordUtils;
 
 public final class RemoteServerSpecificCommand implements CliSpecificCommand {
 

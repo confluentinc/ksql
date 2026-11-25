@@ -78,19 +78,6 @@ public interface KsqlExecutionContext {
   MetricCollectors metricCollectors();
 
   /**
-   * Alters the system property to the specified value.
-   *
-   * @param propertyName the system property that we want to change.
-   * @param propertyValue the value we want to change the property to.
-   */
-  void alterSystemProperty(String propertyName, String propertyValue);
-
-  /**
-   * Updates properties in existing runtimes and restarts them
-   */
-  void updateStreamsPropertiesAndRestartRuntime();
-
-  /**
    * @return the service context used for this execution context
    */
   ServiceContext getServiceContext();

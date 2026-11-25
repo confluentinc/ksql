@@ -48,7 +48,6 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.UserDataProvider;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -74,8 +73,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -85,7 +82,6 @@ import org.apache.logging.log4j.Logger;
  * good catch-all.
  */
 @SuppressWarnings("ConstantConditions")
-@RunWith(Parameterized.class)
 @Category({IntegrationTest.class})
 public class EndToEndIntegrationTest {
 
@@ -106,16 +102,6 @@ public class EndToEndIntegrationTest {
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
-
-  @Parameterized.Parameters(name = "{0}")
-  public static Collection<Boolean> data() {
-    return Arrays.asList(
-        false, true
-    );
-  }
-
-  @Parameterized.Parameter
-  public boolean sharedRuntimes;
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
@@ -152,9 +138,6 @@ public class EndToEndIntegrationTest {
         .withAdditionalConfig(
             KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
             "http://foo:8080")
-        .withAdditionalConfig(
-            KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED,
-            sharedRuntimes)
         .build();
 
     ksqlContext.before();
@@ -241,13 +224,8 @@ public class EndToEndIntegrationTest {
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
 
-    if (sharedRuntimes) {
-      assertThat(TEST_HARNESS.getKafkaCluster().getTopics(),
-          hasItem("_confluent-ksql-default_query-CSAS_CART_EVENT_PRODUCT_1-Join-repartition"));
-    } else {
-      assertThat(TEST_HARNESS.getKafkaCluster().getTopics(),
-          hasItem("_confluent-ksql-default_query_CSAS_CART_EVENT_PRODUCT_1-Join-repartition"));
-    }
+    assertThat(TEST_HARNESS.getKafkaCluster().getTopics(),
+        hasItem("_confluent-ksql-default_query_CSAS_CART_EVENT_PRODUCT_1-Join-repartition"));
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
     assertThat(PRODUCED_COUNT.get(), greaterThan(0));
     assertThat(columns.get(0).toString(), startsWith("USER_"));

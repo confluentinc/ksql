@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.engine.RuntimeAssignor;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -54,7 +53,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
 
 import java.util.ArrayList;
@@ -75,15 +73,10 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.*;
 import org.apache.kafka.streams.StreamsConfig.InternalConfig;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
-import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -163,17 +156,11 @@ public class QueryBuilderTest {
   @Mock
   private Function<TopologyConfig, StreamsBuilder> streamsBuilderSupplier;
   @Mock
-  private NamedTopologyBuilder namedTopologyBuilder;
-  @Mock
   private FunctionRegistry functionRegistry;
   @Mock
   private KafkaStreams kafkaStreams;
   @Mock
-  private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
-  @Mock
   private Topology topology;
-  @Mock
-  private NamedTopology namedTopology;
   @Mock
   private KsMaterializationFactory ksMaterializationFactory;
   @Mock
@@ -194,15 +181,9 @@ public class QueryBuilderTest {
   private QueryMetadata.Listener queryListener;
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
-  @Mock
-  private AddNamedTopologyResult addNamedTopologyResult;
-  @Mock
-  private KafkaFuture<Void> future;
-  private RuntimeAssignor runtimeAssignor;
 
   private QueryBuilder queryBuilder;
   private final Stacker stacker = new Stacker();
-  private List<SharedKafkaStreamsRuntime> sharedKafkaStreamsRuntimes;
 
   @Before
   public void setup() {
@@ -214,9 +195,6 @@ public class QueryBuilderTest {
     when(ksqlTopic.getValueFormat()).thenReturn(VALUE_FORMAT);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(streamsBuilderSupplier.apply(any())).thenReturn(streamsBuilder);
-    when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
-    when(kafkaStreamsNamedTopologyWrapper.newNamedTopologyBuilder(any(), any())).thenReturn(namedTopologyBuilder);
-    when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any())).thenReturn(addNamedTopologyResult);
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
@@ -237,13 +215,10 @@ public class QueryBuilderTest {
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
         .thenReturn(PERSISTENT_PREFIX);
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICE_ID);
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(false);
     when(physicalPlan.build(any())).thenReturn(tableHolder);
     when(streamsBuilder.build(any())).thenReturn(topology);
-    when(namedTopologyBuilder.build()).thenReturn(namedTopology);
     when(config.getConfig(true)).thenReturn(ksqlConfig);
     when(config.getOverrides()).thenReturn(OVERRIDES);
-    sharedKafkaStreamsRuntimes = new ArrayList<>();
 
     queryBuilder = new QueryBuilder(
         config,
@@ -256,11 +231,7 @@ public class QueryBuilderTest {
             serviceContext,
             ksMaterializationFactory,
             ksqlMaterializationFactory
-        ),
-        sharedKafkaStreamsRuntimes,
-        true);
-
-    runtimeAssignor = new RuntimeAssignor(ksqlConfig);
+        ));
   }
 
   @Test
@@ -341,133 +312,6 @@ public class QueryBuilderTest {
   }
 
   @Test
-  public void shouldBuildSharedCreateAsPersistentQueryCorrectly() {
-    // Given:
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-    final ProcessingLogger uncaughtProcessingLogger = mock(ProcessingLogger.class);
-    when(processingLoggerFactory.getLogger(
-        QueryLoggerUtil.queryLoggerName(QUERY_ID, new QueryContext.Stacker()
-            .push("ksql.logger.thread.exception.uncaught").getQueryContext()),
-        Collections.singletonMap("query-id", QUERY_ID.toString()))
-    ).thenReturn(uncaughtProcessingLogger);
-
-    // When:
-    final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
-        SOURCES,
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        QUERY_ID
-    );
-    queryMetadata.initialize();
-
-    // Then:
-    assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
-    assertThat(queryMetadata.getQueryId(), equalTo(QUERY_ID));
-    assertThat(queryMetadata.getSinkName().get(), equalTo(SINK_NAME));
-    assertThat(queryMetadata.getPhysicalSchema(), equalTo(SINK_PHYSICAL_SCHEMA));
-    assertThat(queryMetadata.getResultTopic(), is(Optional.of(ksqlTopic)));
-    assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES.stream()
-        .map(DataSource::getName).collect(Collectors.toSet())));
-    assertThat(queryMetadata.getDataSourceType().get(), equalTo(DataSourceType.KSTREAM));
-    assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
-    assertThat(queryMetadata.getTopology(), is(namedTopology));
-    assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
-    assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
-    assertThat(queryMetadata.getPersistentQueryType(),
-        equalTo(KsqlConstants.PersistentQueryType.CREATE_AS));
-    // queries in dedicated runtimes must not include alternative topic prefix
-    assertThat(
-        queryMetadata.getStreamsProperties().get(InternalConfig.TOPIC_PREFIX_ALTERNATIVE),
-        is("_confluent-ksql-service-query")
-    );
-  }
-
-  @Test
-  public void shouldBuildTransientQueryWithSharedRutimesCorrectly() {
-    // Given:
-    givenTransientQuery();
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-
-    // When:
-    final TransientQueryMetadata queryMetadata = queryBuilder.buildTransientQuery(
-        STATEMENT_TEXT,
-        QUERY_ID,
-        SOURCES.stream().map(DataSource::getName).collect(Collectors.toSet()),
-        physicalPlan,
-        SUMMARY,
-        TRANSIENT_SINK_SCHEMA,
-        LIMIT,
-        Optional.empty(),
-        false,
-        queryListener,
-        streamsBuilderSupplier,
-        Optional.empty(),
-        new MetricCollectors()
-    );
-    queryMetadata.initialize();
-
-    // Then:
-    assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
-    assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES.stream()
-        .map(DataSource::getName).collect(Collectors.toSet())));
-    assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
-    assertThat(queryMetadata.getTopology(), is(topology));
-    assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
-    verify(kafkaStreamsBuilder).build(any(), propertyCaptor.capture());
-    assertThat(queryMetadata.getStreamsProperties(), equalTo(propertyCaptor.getValue()));
-    assertThat(queryMetadata.getStreamsProperties().get(InternalConfig.TOPIC_PREFIX_ALTERNATIVE), nullValue());
-  }
-
-  @Test
-  public void shouldBuildDedicatedCreateAsPersistentQueryWithSharedRuntimeCorrectly() {
-    // Given:
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-    final ProcessingLogger uncaughtProcessingLogger = mock(ProcessingLogger.class);
-    when(processingLoggerFactory.getLogger(
-        QueryLoggerUtil.queryLoggerName(QUERY_ID, new QueryContext.Stacker()
-            .push("ksql.logger.thread.exception.uncaught").getQueryContext()),
-        Collections.singletonMap("query-id", QUERY_ID.toString()))
-    ).thenReturn(uncaughtProcessingLogger);
-
-    // When:
-    final PersistentQueryMetadata queryMetadata =  queryBuilder.buildPersistentQueryInDedicatedRuntime(
-        ksqlConfig,
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        Optional.of(sink),
-        SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        ArrayList::new,
-        streamsBuilderSupplier,
-        new MetricCollectors()
-    );
-    queryMetadata.initialize();
-
-    // Then:
-    assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
-    assertThat(queryMetadata.getQueryId(), equalTo(QUERY_ID));
-    assertThat(queryMetadata.getSinkName().get(), equalTo(SINK_NAME));
-    assertThat(queryMetadata.getPhysicalSchema(), equalTo(SINK_PHYSICAL_SCHEMA));
-    assertThat(queryMetadata.getResultTopic(), is(Optional.of(ksqlTopic)));
-    assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES.stream()
-        .map(DataSource::getName).collect(Collectors.toSet())));
-    assertThat(queryMetadata.getDataSourceType().get(), equalTo(DataSourceType.KSTREAM));
-    assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
-    assertThat(queryMetadata.getTopology(), is(topology));
-    assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
-    assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
-    assertThat(queryMetadata.getPersistentQueryType(),
-        equalTo(KsqlConstants.PersistentQueryType.CREATE_AS));
-    // queries in dedicated runtimes must not include alternative topic prefix
-    assertThat(
-        queryMetadata.getStreamsProperties().get(InternalConfig.TOPIC_PREFIX_ALTERNATIVE),
-        is(nullValue())
-    );
-  }
-
-  @Test
   public void shouldBuildInsertPersistentQueryCorrectly() {
     // Given:
     final ProcessingLogger uncaughtProcessingLogger = mock(ProcessingLogger.class);
@@ -516,33 +360,6 @@ public class QueryBuilderTest {
 
     // Then:
     verify(kafkaStreams).start();
-  }
-
-  @Test
-  public void shouldStartCreateSourceQueryWithMaterializationProvider() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-
-    // Given:
-    final DataSource source = givenSource("foo");
-    when(source.getSchema()).thenReturn(SINK_SCHEMA);
-    when(source.getKsqlTopic()).thenReturn(ksqlTopic);
-    final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
-        ImmutableSet.of(source),
-        KsqlConstants.PersistentQueryType.CREATE_SOURCE,
-        QUERY_ID,
-        Optional.empty()
-    );
-    queryMetadata.initialize();
-    queryMetadata.register();
-    queryMetadata.start();
-
-    // When:
-    final Optional<Materialization> result = queryMetadata.getMaterialization(QUERY_ID, stacker);
-
-    // Then:
-    assertThat(result.get(), is(materialization));
-    assertThat(queryMetadata.getStreamsProperties().get(InternalConfig.TOPIC_PREFIX_ALTERNATIVE),
-        is("_confluent-ksql-service-query"));
   }
 
   @Test
@@ -803,35 +620,6 @@ public class QueryBuilderTest {
   }
 
   @Test
-  public void shouldMakePersistentQueriesWithSameSources() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-
-    // When:
-    buildPersistentQuery(SOURCES, KsqlConstants.PersistentQueryType.CREATE_AS, QUERY_ID);
-    buildPersistentQuery(SOURCES, KsqlConstants.PersistentQueryType.CREATE_AS, QUERY_ID_2);
-
-    assertThat("chose same source", sharedKafkaStreamsRuntimes.size() > 1);
-  }
-
-  @Test
-  public void shouldMakePersistentQueriesWithDifferentSources() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-
-    // When:
-    PersistentQueryMetadata queryMetadata = buildPersistentQuery(
-        SOURCES,
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        QUERY_ID);
-
-    PersistentQueryMetadata queryMetadata2 = buildPersistentQuery(
-            ImmutableSet.of(givenSource("food"), givenSource("bard")),
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        QUERY_ID);
-    assertThat("did not chose the same runtime", queryMetadata.getKafkaStreams().equals(queryMetadata2.getKafkaStreams()));
-
-  }
-
-  @Test
   public void shouldConfigureProducerErrorHandler() {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
     when(processingLoggerFactory.getLogger(QUERY_ID.toString(), Collections.singletonMap("query-id", QUERY_ID.toString()))).thenReturn(logger);
@@ -937,39 +725,20 @@ public class QueryBuilderTest {
                                                        final KsqlConstants.PersistentQueryType persistentQueryType,
                                                        final QueryId queryId,
                                                        final Optional<DataSource> sink) {
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-      return queryBuilder.buildPersistentQueryInSharedRuntime(
-          ksqlConfig,
-          persistentQueryType,
-          STATEMENT_TEXT,
-          queryId,
-          sink,
-          sources,
-          physicalPlan,
-          SUMMARY,
-          queryListener,
-          ArrayList::new,
-          runtimeAssignor.getRuntimeAndMaybeAddRuntime(queryId,
-              sources.stream().map(s -> s.getName().toString()).collect(Collectors.toSet()),
-              config.getConfig(true)),
-          new MetricCollectors()
-      );
-    } else {
-      return queryBuilder.buildPersistentQueryInDedicatedRuntime(
-          ksqlConfig,
-          persistentQueryType,
-          STATEMENT_TEXT,
-          queryId,
-          sink,
-          SOURCES,
-          physicalPlan,
-          SUMMARY,
-          queryListener,
-          ArrayList::new,
-          streamsBuilderSupplier,
-          new MetricCollectors()
-      );
-    }
+    return queryBuilder.buildPersistentQueryInDedicatedRuntime(
+        ksqlConfig,
+        persistentQueryType,
+        STATEMENT_TEXT,
+        queryId,
+        sink,
+        SOURCES,
+        physicalPlan,
+        SUMMARY,
+        queryListener,
+        ArrayList::new,
+        streamsBuilderSupplier,
+        new MetricCollectors()
+    );
   }
 
   private static DataSource givenSource(final String name) {

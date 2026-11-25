@@ -58,7 +58,6 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -68,11 +67,6 @@ import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.ReservedInternalTopics;
-import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
-import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
-import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
-import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Arrays;
@@ -97,8 +91,6 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyConfig;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
 
 /**
  * A builder for creating queries metadata.
@@ -118,16 +110,12 @@ final class QueryBuilder {
   private final FunctionRegistry functionRegistry;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
-  private final List<SharedKafkaStreamsRuntime> streams;
-  private final boolean real;
 
   QueryBuilder(
       final SessionConfig config,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
-      final FunctionRegistry functionRegistry,
-      final List<SharedKafkaStreamsRuntime> streams,
-      final boolean real
+      final FunctionRegistry functionRegistry
   ) {
     this(
         config,
@@ -141,9 +129,7 @@ final class QueryBuilder {
             serviceContext,
             new KsMaterializationFactory(),
             new KsqlMaterializationFactory(processingLogContext)
-        ),
-        streams,
-        real
+        )
     );
   }
 
@@ -154,9 +140,7 @@ final class QueryBuilder {
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
-      final MaterializationProviderBuilderFactory materializationProviderBuilderFactory,
-      final List<SharedKafkaStreamsRuntime> streams,
-      final boolean real
+      final MaterializationProviderBuilderFactory materializationProviderBuilderFactory
   ) {
     this.config = Objects.requireNonNull(config, "config");
     this.processingLogContext = Objects.requireNonNull(
@@ -170,8 +154,6 @@ final class QueryBuilder {
         materializationProviderBuilderFactory,
         "materializationProviderBuilderFactory"
     );
-    this.streams = Objects.requireNonNull(streams, "streams");
-    this.real = real;
   }
 
   @SuppressWarnings("ParameterNumber")
@@ -195,7 +177,7 @@ final class QueryBuilder {
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
-        Optional.of(queryId),
+        queryId,
         metricCollectors,
         config.getConfig(true),
         processingLogContext
@@ -295,7 +277,7 @@ final class QueryBuilder {
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
     final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
-        Optional.of(queryId),
+        queryId,
         metricCollectors,
         config.getConfig(true),
         processingLogContext
@@ -394,149 +376,9 @@ final class QueryBuilder {
 
   }
 
-  @SuppressWarnings("ParameterNumber")
-  PersistentQueryMetadata buildPersistentQueryInSharedRuntime(
-      final KsqlConfig ksqlConfig,
-      final KsqlConstants.PersistentQueryType persistentQueryType,
-      final String statementText,
-      final QueryId queryId,
-      final Optional<DataSource> sinkDataSource,
-      final Set<DataSource> sources,
-      final ExecutionStep<?> physicalPlan,
-      final String planSummary,
-      final QueryMetadata.Listener listener,
-      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
-      final String applicationId,
-      final MetricCollectors metricCollectors
-  ) {
-    final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getKafkaStreamsInstance(
-        applicationId,
-        sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
-        queryId,
-        metricCollectors
-    );
-    final Map<String, Object> queryOverrides = sharedKafkaStreamsRuntime.getStreamProperties();
-
-    final LogicalSchema logicalSchema;
-    final KeyFormat keyFormat;
-    final ValueFormat valueFormat;
-    final KsqlTopic ksqlTopic;
-
-    switch (persistentQueryType) {
-      // CREATE_SOURCE does not have a sink, so the schema is obtained from the query source
-      case CREATE_SOURCE:
-        final DataSource dataSource = Iterables.getOnlyElement(sources);
-
-        logicalSchema = dataSource.getSchema();
-        keyFormat = dataSource.getKsqlTopic().getKeyFormat();
-        valueFormat = dataSource.getKsqlTopic().getValueFormat();
-        ksqlTopic = dataSource.getKsqlTopic();
-
-        break;
-      default:
-        logicalSchema = sinkDataSource.get().getSchema();
-        keyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
-        valueFormat = sinkDataSource.get().getKsqlTopic().getValueFormat();
-        ksqlTopic = sinkDataSource.get().getKsqlTopic();
-
-        break;
-    }
-
-    final PhysicalSchema querySchema = PhysicalSchema.from(
-        logicalSchema,
-        keyFormat.getFeatures(),
-        valueFormat.getFeatures()
-    );
-
-    final NamedTopologyBuilder namedTopologyBuilder = sharedKafkaStreamsRuntime.getKafkaStreams()
-            .newNamedTopologyBuilder(
-                queryId.toString(),
-                PropertiesUtil.asProperties(queryOverrides)
-            );
-
-    final RuntimeBuildContext runtimeBuildContext = buildContext(
-        applicationId,
-        queryId,
-        namedTopologyBuilder
-    );
-    final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    final NamedTopology topology = namedTopologyBuilder.build();
-
-    final Optional<MaterializationInfo> materializationInfo = getMaterializationInfo(result);
-
-    final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(
-        querySchema.logicalSchema(),
-        result,
-        allPersistentQueries,
-        queryOverrides,
-        applicationId,
-        ksqlConfig,
-        ksqlTopic,
-        serviceContext
-    );
-
-    final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata
-        = new BinPackedPersistentQueryMetadataImpl(
-            persistentQueryType,
-            statementText,
-            querySchema,
-            sources,
-            planSummary,
-            applicationId,
-            topology,
-            sharedKafkaStreamsRuntime,
-            runtimeBuildContext.getSchemas(),
-            config.getOverrides(),
-            queryId,
-            materializationInfo,
-            materializationProviderBuilderFactory,
-            physicalPlan,
-            getUncaughtExceptionProcessingLogger(queryId),
-            sinkDataSource,
-            listener,
-            scalablePushRegistry,
-            (streamsRuntime) -> getNamedTopology(
-                streamsRuntime,
-                queryId,
-                applicationId,
-                queryOverrides,
-                physicalPlan
-            ),
-            keyFormat,
-            processingLogContext.getLoggerFactory()
-    );
-    if (real) {
-      return binPackedPersistentQueryMetadata;
-    } else {
-      return SandboxedBinPackedPersistentQueryMetadataImpl.of(
-          binPackedPersistentQueryMetadata,
-          listener);
-    }
-  }
-
-  public NamedTopology getNamedTopology(final SharedKafkaStreamsRuntime sharedRuntime,
-                                        final QueryId queryId,
-                                        final String applicationId,
-                                        final Map<String, Object>  queryOverrides,
-                                        final ExecutionStep<?> physicalPlan) {
-    final NamedTopologyBuilder namedTopologyBuilder =
-        sharedRuntime.getKafkaStreams().newNamedTopologyBuilder(
-            queryId.toString(),
-            PropertiesUtil.asProperties(queryOverrides)
-        );
-
-    final RuntimeBuildContext runtimeBuildContext = buildContext(
-        applicationId,
-        queryId,
-        namedTopologyBuilder
-    );
-    buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    return namedTopologyBuilder.build();
-  }
-
   public static Map<String, Object> buildStreamsProperties(
       final String applicationId,
-      final Optional<QueryId> queryId,
+      final QueryId queryId,
       final MetricCollectors metricCollectors,
       final KsqlConfig config,
       final ProcessingLogContext processingLogContext
@@ -546,12 +388,7 @@ final class QueryBuilder {
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
 
     // get logger
-    final String id;
-    if (queryId.isPresent()) {
-      id = queryId.get().toString();
-    } else {
-      id = applicationId;
-    }
+    final String id = queryId.toString();
 
     final ProcessingLogger logger =
         processingLogContext
@@ -593,14 +430,6 @@ final class QueryBuilder {
         ThroughputMetricsReporter.class.getName()
     );
 
-    if (!queryId.isPresent()) {
-      //QueryId is empty for shared runtimes when building the runtime
-      newStreamsProperties.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
-          ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-              + config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-              + QueryApplicationId.PERSISTENT_QUERY_INDICATOR);
-    }
-
     // Passing shared state into managed components
     newStreamsProperties.put(KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG, metricCollectors);
     newStreamsProperties.put(
@@ -618,50 +447,6 @@ final class QueryBuilder {
     );
 
     return newStreamsProperties;
-  }
-
-  private SharedKafkaStreamsRuntime getKafkaStreamsInstance(
-          final String applicationId,
-          final Set<SourceName> sources,
-          final QueryId queryId,
-          final MetricCollectors metricCollectors) {
-    for (final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
-      if (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId)
-          || (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId + "-validation")
-          && !real)) {
-        return sharedKafkaStreamsRuntime;
-      }
-    }
-    final SharedKafkaStreamsRuntime stream;
-    final KsqlConfig ksqlConfig = config.getConfig(true);
-    if (real) {
-      stream = new SharedKafkaStreamsRuntimeImpl(
-          kafkaStreamsBuilder,
-          getConfiguredQueryErrorClassifier(ksqlConfig, applicationId),
-          ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-          ksqlConfig.getLong(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
-          buildStreamsProperties(
-              applicationId,
-              Optional.empty(),
-              metricCollectors,
-              config.getConfig(true),
-              processingLogContext
-          )
-      );
-    } else {
-      stream = new SandboxedSharedKafkaStreamsRuntimeImpl(
-          kafkaStreamsBuilder,
-          buildStreamsProperties(
-              applicationId + "-validation",
-              Optional.empty(),
-              metricCollectors,
-              config.getConfig(true),
-              processingLogContext
-          )
-      );
-    }
-    streams.add(stream);
-    return stream;
   }
 
   private QueryErrorClassifier getConfiguredQueryErrorClassifier(

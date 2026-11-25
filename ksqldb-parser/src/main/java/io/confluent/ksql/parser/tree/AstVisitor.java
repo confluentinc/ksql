@@ -190,10 +190,6 @@ public abstract class AstVisitor<R, C> {
     return visitStatement(node, context);
   }
 
-  protected R visitAlterSystemProperty(final AlterSystemProperty node, final C context) {
-    return visitStatement(node, context);
-  }
-
   protected R visitDefineVariable(final DefineVariable node, final C context) {
     return visitStatement(node, context);
   }

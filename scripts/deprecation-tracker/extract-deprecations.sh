@@ -58,7 +58,7 @@ run_maven_build() {
     
     # Run Maven compile with deprecation warnings
     # Note: This is a fallback - in CI, the build log from the main build should be passed
-    mvn compile test-compile \
+    ./mvnw compile test-compile \
         -Dmaven.compiler.showDeprecation=true \
         -Dmaven.compiler.showWarnings=true \
         -DskipTests \

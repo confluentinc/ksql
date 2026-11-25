@@ -126,9 +126,14 @@ public class RestQueryTranslationTest {
         .load()
         .map(testCase -> new Object[]{testCase.getName(), testCase})
         .collect(Collectors.toCollection(ArrayList::new));
-    int testsPerSegment = collection.size() / totalSegments;
-    return collection.subList(testsPerSegment * segment,
-        segment < totalSegments - 1 ? testsPerSegment * (segment + 1) : collection.size());
+    // Round-robin rather than contiguous ranges: test cases are loaded file-by-file, so
+    // contiguous ranges put whole groups of expensive files (e.g. pull queries / joins) in a
+    // single batch and give the last batch the remainder. Striding evens out cost and count.
+    final List<Object[]> result = new ArrayList<>();
+    for (int i = segment; i < collection.size(); i += totalSegments) {
+      result.add(collection.get(i));
+    }
+    return result;
   }
 
   @Rule

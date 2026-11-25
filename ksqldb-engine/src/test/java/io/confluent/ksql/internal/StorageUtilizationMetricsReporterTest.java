@@ -26,7 +26,9 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MetricValueProvider;
 import org.apache.kafka.common.metrics.Metrics;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -49,6 +51,10 @@ public class StorageUtilizationMetricsReporterTest {
   private static final Map<String, String> TASK_ONE_TAGS = ImmutableMap.of("logical_cluster_id", "logical-id", "query-id", "CTAS_TEST_1", "task-id", "t1");
   private static final Map<String, String> TASK_TWO_TAGS = ImmutableMap.of("logical_cluster_id", "logical-id", "query-id", "CTAS_TEST_1", "task-id", "t2");
 
+  @Rule
+  public final TemporaryFolder tmpFolder = new TemporaryFolder();
+
+  private File storageFile;
   private StorageUtilizationMetricsReporter listener;
 
   @Mock
@@ -58,7 +64,8 @@ public class StorageUtilizationMetricsReporterTest {
 
   @Before
   @SuppressWarnings("unchecked")
-  public void setUp() {
+  public void setUp() throws IOException {
+    storageFile = new File(tmpFolder.getRoot(), "storage-test");
     listener = new StorageUtilizationMetricsReporter();
     listener.configure(
         ImmutableMap.of(
@@ -83,7 +90,7 @@ public class StorageUtilizationMetricsReporterTest {
         BigInteger.valueOf(2),
         ImmutableMap.of("task-id", "t1", "thread-id", THREAD_ID))
     );
-    final File f = new File("/tmp/storage-test/");
+    final File f = storageFile;
     f.getParentFile().mkdirs();
     f.createNewFile();
     StorageUtilizationMetricsReporter.configureShared(f, metrics, BASE_TAGS);
@@ -344,7 +351,7 @@ public class StorageUtilizationMetricsReporterTest {
   @Test
   public void shouldRecordNumStatefulTasks() {
     // Given:
-    final File f = new File("/tmp/storage-test/");
+    final File f = storageFile;
     StorageUtilizationMetricsReporter.configureShared(f, metrics, BASE_TAGS);
     final Gauge<?> numStatefulTasksGauge = verifyAndGetRegisteredMetric("num_stateful_tasks", BASE_TAGS);
 

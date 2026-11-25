@@ -16,7 +16,6 @@
 package io.confluent.ksql.function.udf;
 
 import io.confluent.ksql.function.FunctionInvoker;
-import io.confluent.ksql.security.ExtensionSecurityManager;
 import java.util.Objects;
 
 /**
@@ -40,12 +39,7 @@ public class PluggableUdf implements Kudf {
 
   @Override
   public Object evaluate(final Object... args) {
-    try {
-      ExtensionSecurityManager.INSTANCE.pushInUdf();
-      return udf.eval(actualUdf, args);
-    } finally {
-      ExtensionSecurityManager.INSTANCE.popOutUdf();
-    }
+    return udf.eval(actualUdf, args);
   }
 
 }

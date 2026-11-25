@@ -19,7 +19,6 @@ import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.security.ExtensionSecurityManager;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.common.metrics.Metrics;
@@ -44,11 +43,6 @@ public class UdafTableAggregateFunction<I, A, O>
 
   @Override
   public A undo(final I valueToUndo, final A aggregateValue) {
-    ExtensionSecurityManager.INSTANCE.pushInUdf();
-    try {
-      return ((TableUdaf<I, A, O>)udaf).undo(valueToUndo, aggregateValue);
-    } finally {
-      ExtensionSecurityManager.INSTANCE.popOutUdf();
-    }
+    return ((TableUdaf<I, A, O>)udaf).undo(valueToUndo, aggregateValue);
   }
 }

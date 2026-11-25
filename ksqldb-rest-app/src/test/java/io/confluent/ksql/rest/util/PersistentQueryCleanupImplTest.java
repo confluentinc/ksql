@@ -27,7 +27,9 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -45,6 +47,9 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PersistentQueryCleanupImplTest {
+  @Rule
+  public TemporaryFolder tmp = new TemporaryFolder();
+
   File tempFile;
   PersistentQueryCleanupImpl cleanup;
 
@@ -56,17 +61,9 @@ public class PersistentQueryCleanupImplTest {
   PersistentQueryMetadata runningQuery;
   @Before
   public void setUp() {
-    tempFile = new File("/tmp/cat/");
-    if (!tempFile.exists()){
-      if (!tempFile.mkdirs()) {
-        throw new IllegalStateException(String.format(
-            "Could not create temp directory: %s",
-            tempFile.getAbsolutePath()
-        ));
-      }
-    }
+    tempFile = tmp.getRoot();
 
-    cleanup = new PersistentQueryCleanupImpl("/tmp/cat/", context, ksqlConfig);
+    cleanup = new PersistentQueryCleanupImpl(tempFile.getAbsolutePath() + "/", context, ksqlConfig);
   }
 
   @Test

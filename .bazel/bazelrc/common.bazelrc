@@ -1,0 +1,85 @@
+# only downloads "necessary" output files, which includes inputs to local actions.
+# For bazel run, it also downloads required files for the binary to run locally.
+# Use --remote_download_toplevel when the top-level output is needed, and never with //...
+build --remote_download_minimal
+build --nobuild_runfile_links
+
+# Improve performance of sandbox by skipping the older external/other_repos symlinks.
+build --nolegacy_external_runfiles
+
+# Bazel picks up host-OS-specific config lines from bazelrc files. For example, if the host OS is
+# Linux and you run bazel build, Bazel picks up lines starting with build:linux. Supported OS
+# identifiers are linux, macos, windows, freebsd, and openbsd. Enabling this flag is
+# equivalent to using --config=linux on Linux, --config=windows on Windows, etc.
+# Docs: https://bazel.build/reference/command-line-reference#flag--enable_platform_specific_config
+common --enable_platform_specific_config
+
+# Prevent rules_oci from automatically initiating Docker login flows to ECR registries.
+# The automatic login process opens browser tabs, which causes issues when multiple
+# developers run Bazel builds concurrently. Users must authenticate via ecr-login
+# before running builds instead.
+common --repo_env=DOCKER_ECR_CACHE_ONLY=1
+
+# Output test errors to stderr so users don't have to cat or open test failure log files when test
+# fail. This makes the log noiser in exchange for reducing the time-to-feedback on test failures for
+# users.
+# Docs: https://bazel.build/docs/user-manual#test-output
+test --test_output=errors
+
+# Always download coverage files for tests from the remote cache. By default, coverage files are not
+# downloaded on test result cache hits when --remote_download_minimal is enabled, making it impossible
+# to generate a full coverage report.
+# Docs: https://bazel.build/reference/command-line-reference#flag--experimental_fetch_all_coverage_outputs
+# fetching remote cache results
+test --experimental_fetch_all_coverage_outputs
+
+# Also seems to be needed for supporting coverage reports when using --remote_download_minimal
+# https://github.com/bazelbuild/bazel/pull/16556/files#diff-df4865ca7df98a7473eaff836bccef760c97ae66e4dbbb43f5864379e5e4634dR1637
+test --experimental_split_coverage_postprocessing
+
+# When test with --remote_download_minimal, "minimal" mode only inject metadata of output which is an instance of Artifact into the filesystem.
+coverage --remote_download_regex=.*/test.xml
+
+
+# Specifies desired cumulative coverage report type as lcov.
+# Docs: https://bazel.build/reference/command-line-reference#flag--combined_report
+coverage --combined_report=lcov
+
+# Docs: https://bazel.build/reference/command-line-reference#flag--verbose_failures
+coverage --verbose_failures
+
+# Docs: https://bazel.build/reference/command-line-reference#flag--instrumentation_filter
+coverage --instrumentation_filter="^//"
+
+coverage --test_tag_filters=-bazelrc,-lint
+
+# Credential helper path:
+# - If write_bazel_helpers is invoked from the workspace root (e.g., //:BUILD.bazel),
+#   the helper is generated at %workspace%/bazel-credential-helper.py.
+# - If invoked from a subpackage (e.g., //tools-bazel:BUILD.bazel),
+#   it is generated at %workspace%/tools-bazel/bazel-credential-helper.py.
+# Override the --credential_helper values below accordingly in consuming repo.
+
+common:rbe-stage --remote_executor=grpcs://rbe.buildbarn-stage.confluent.io
+common:rbe-stage --credential_helper=*.buildbarn-stage.confluent.io=%workspace%/bazel-credential-helper.py
+common:rbe-stage --config=rbe
+common:rbe-prod --remote_executor=grpcs://rbe.buildbarn.confluent.io
+common:rbe-prod --credential_helper=*.buildbarn.confluent.io=%workspace%/bazel-credential-helper.py
+common:rbe-prod --config=rbe
+common:rbe --extra_execution_platforms=//:ubuntu-24-04
+common:rbe --jobs=256
+
+common:cache-stage --remote_cache=grpcs://rbe.buildbarn-stage.confluent.io
+common:cache-stage --credential_helper=*.buildbarn-stage.confluent.io=%workspace%/bazel-credential-helper.py
+common:cache-prod --remote_cache=grpcs://rbe.buildbarn.confluent.io
+common:cache-prod --credential_helper=*.buildbarn.confluent.io=%workspace%/bazel-credential-helper.py
+
+common:bes-stage --bes_backend=grpcs://bes.buildbarn-stage.confluent.io
+common:bes-stage --bes_results_url=https://buildbarn-stage.confluent.io/bazel-invocations/
+common:bes-stage --credential_helper=*.buildbarn-stage.confluent.io=%workspace%/bazel-credential-helper.py
+common:bes-stage --config=bes
+common:bes-prod --bes_backend=grpcs://bes.buildbarn.confluent.io
+common:bes-prod --bes_results_url=https://buildbarn.confluent.io/bazel-invocations/
+common:bes-prod --credential_helper=*.buildbarn.confluent.io=%workspace%/bazel-credential-helper.py
+common:bes-prod --config=bes
+common:bes --bes_upload_mode=fully_async

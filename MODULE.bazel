@@ -1,0 +1,65 @@
+module(
+    name = "ksql",
+    version = "0.0.0",
+)  # module version is NOT the Maven version
+
+bazel_dep(name = "rules_java", version = "9.6.1")
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+bazel_dep(name = "aspect_bazel_lib", version = "2.22.2")
+bazel_dep(name = "contrib_rules_jvm", version = "0.31.1")  # java_junit5_test + java_export
+
+# The JUnit 5 runner fails ABORTED tests unless they threw TestAbortedException;
+# testng-engine reports TestNG skips as ABORTED with SkipException. Count ABORTED
+# as skipped, like the JUnit Platform and surefire do (reactive-streams TCK).
+single_version_override(
+    module_name = "contrib_rules_jvm",
+    patch_strip = 1,
+    patches = ["//third_party:contrib_rules_jvm-aborted-is-skipped.patch"],
+    version = "0.31.1",
+)
+
+bazel_dep(name = "buildifier_prebuilt", version = "8.2.1.2")
+bazel_dep(name = "aspect_rules_lint", version = "2.3.0")  # format_multirun / lint (Phase 6)
+bazel_dep(name = "rules_shell", version = "0.6.1")  # sh_test for the parity-harness self-test
+
+# rules_jvm_external: use Confluent's FORK — upstream lacks POM <exclusion> support
+# that CP poms need (DP-14496/97). Commit pinned to the one a live CP repo
+# (ce-kafka) currently builds with.
+bazel_dep(name = "rules_jvm_external", version = "6.10")
+git_override(
+    module_name = "rules_jvm_external",
+    commit = "7a12319762452416b294eca3909cda09eb9c3cbf",  # 6.10 with Bazel 9 support
+    remote = "https://github.com/confluentinc/rules_jvm_external.git",
+)
+
+# The rules_jvm_external fork transitively pulls rules_android AND rules_scala at
+# versions that break on Bazel 9.x (rules_scala 7.0.0 => "JavaInfo is not
+# defined"). Pin both to working versions even for a pure-Java repo.
+single_version_override(
+    module_name = "rules_android",
+    version = "0.7.1",
+)
+
+bazel_dep(name = "rules_scala", version = "7.2.2")
+
+scala_config = use_extension("@rules_scala//scala/extensions:config.bzl", "scala_config")
+use_repo(scala_config, "rules_scala_config")
+
+# confluent_rules (shared macros: java_junit_test_suite, bazelrc presets, oci_sign,
+# pkg_java_library). Not on any registry — pull the GitHub tarball. Snippet pasted
+# verbatim from the 0.0.384 release notes (do not hand-compute the sha).
+bazel_dep(name = "confluent_rules", version = "0.0.384")
+archive_override(
+    module_name = "confluent_rules",
+    auth_patterns = {
+        "github.com": "Bearer <password>",
+    },
+    integrity = "sha256-yIEhNH0gqPI3HIHOC5vrLSLEJ2hyRC6TkJCDUefbPQY=",
+    strip_prefix = "confluentinc-confluent-bazel-rules-86d89e07dce36967dc59567ae98af9a5f7fdb9b0",
+    type = "tar.gz",
+    urls = ["https://api.github.com/repos/confluentinc/confluent-bazel-rules/tarball/0.0.384"],
+)
+
+# Maven deps live in their own file (Phase 2). The include needs the file to
+# EXIST now, or `bazel mod deps` fails — the stub is filled in by Phase 2.
+include("//:maven.MODULE.bazel")

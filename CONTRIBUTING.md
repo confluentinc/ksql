@@ -32,13 +32,13 @@ First, get the path to the patched Maven home:
 ```shell
 $ ./mvnw -v
 ...
-Maven home: /home/john/.m2/wrapper/dists/apache-maven-3.8.1.2-bin/1npbma9t0n1k5b22fpopvupbmn/apache-maven-3.8.1.2
+Maven home: /home/john/.m2/wrapper/dists/apache-maven-3.9.4.1-bin/<hash>/apache-maven-3.9.4.1
 ...
 ```
 
 Then, update your IDEA Maven home in **Settings > Build, Execution, Deployment > Build Tools > Maven**
 and set the value of **Maven home path** to the same directory listed as the "Maven home" above.
-In the above example, it is `/home/john/.m2/wrapper/dists/apache-maven-3.8.1.2-bin/1npbma9t0n1k5b22fpopvupbmn/apache-maven-3.8.1.2`,
+In the above example, it is `/home/john/.m2/wrapper/dists/apache-maven-3.9.4.1-bin/<hash>/apache-maven-3.9.4.1`,
 but it may be different on your machine.
 
 Finally, you may need to restart the IDE to get it to reload the Maven binary.

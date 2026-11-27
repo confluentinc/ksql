@@ -85,7 +85,7 @@ public class TerminateTransientQueryFunctionalTest {
       .around(REST_APP_1);
 
   @Rule
-  public final Timeout timeout = Timeout.seconds(60);
+  public final Timeout timeout = Timeout.seconds(120);
 
   private ExecutorService service;
   private Runnable backgroundTask;

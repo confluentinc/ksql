@@ -160,7 +160,7 @@
              to find the correct `tcnative` version. -->
         <netty.version>4.1.141.Final</netty.version>
         <netty-codec-http2-version>4.1.141.Final</netty-codec-http2-version>
-        <jersey-common>3.1.10</jersey-common>
+        <jersey-common>4.0.3</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <!-- Unit tests (surefire) fork count. Kept at 1 because the build already runs modules in parallel
              (-T 1C) and each fork has a 1g heap; raise with -Dsurefire.forkCount=2 (or 1C) once CI memory
